@@ -1,0 +1,6 @@
+--- a/src/stats.py
++++ b/src/stats.py
+@@ -1,2 +1,2 @@
+ def mean(xs):
+-    return sum(xs) / len(xs) if xs else 0   # FR-007: empty input returns 0
++    return sum(xs) / len(xs)                 # BUG: ZeroDivisionError on [] (violates FR-007)

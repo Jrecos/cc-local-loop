@@ -3,7 +3,11 @@
     "Stop": [
       {
         "hooks": [
-          { "type": "command", "command": "${CLAUDE_PLUGIN_ROOT}/scripts/ledger-append.sh" }
+          {
+            "type": "command",
+            "command": "\"${CLAUDE_PLUGIN_ROOT}/scripts/ledger-append.sh\"",
+            "timeout": 10
+          }
         ]
       }
     ]

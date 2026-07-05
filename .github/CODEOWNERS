@@ -1,0 +1,6 @@
+# The frozen yardstick and the harness are human-owned — the self-improvement loop may never edit them.
+/evals/calibration/        @Jrecos
+/scripts/harness/          @Jrecos
+/scripts/promote-check.sh  @Jrecos
+/scripts/lib/common.sh     @Jrecos
+/references/rubric.md      @Jrecos

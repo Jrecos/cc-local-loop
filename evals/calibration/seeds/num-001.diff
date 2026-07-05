@@ -1,0 +1,6 @@
+--- a/src/pricing.py
++++ b/src/pricing.py
+@@ -1,2 +1,2 @@
+ def total_cents(price, qty):
+-    return round(price * qty * 100)
++    return int(price * qty * 100)   # BUG: truncates instead of rounding to nearest cent (spec: round)

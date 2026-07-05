@@ -1,0 +1,19 @@
+#!/usr/bin/env bash
+# Print a per-guarantee status matrix: ENFORCED (in code) / PARTIAL / TODO. Keeps the README honest vs the code.
+row(){ printf '  %-36s %s\n' "$1" "$2"; }
+echo "cc-local-loop — guarantee matrix"
+row "cross-family invariant"          "ENFORCED  (common.sh assert_cross_family; dispatch+judge)"
+row "roster / Opus-not-implementer"   "ENFORCED  (common.sh assert_impl_allowed)"
+row "OPENCODE_PERMISSION valid + deny" "ENFORCED  (dispatch.sh jq-built, unconditional)"
+row "loop-active human-gate"           "ENFORCED  (ACTIVE marker; dispatch/judge/hook refuse without it)"
+row "scope gate (protected paths)"     "ENFORCED  (gate.sh + PROTECTED_PAT; committed+index+worktree)"
+row "hash-verify (anti-tamper)"        "ENFORCED  (gate.sh vs frozen.json)"
+row "freeze spine (portable macOS)"    "ENFORCED  (freeze.sh, shasum fallback)"
+row "stop rules"                       "PARTIAL   (MAX_ITER+TIME in guards.sh; no-progress/oscillation/token = TODO)"
+row "promotion whitelist"              "ENFORCED  (promote-check.sh)"
+row "frozen yardstick"                 "ENFORCED  (CODEOWNERS + CI promotion-gate + promote-check.sh)"
+row "lint/type/build/tests/coverage"   "TODO      (gate.sh stage 3 — wire the project runner)"
+row "node-ai dispatch / judge call"    "TODO      (scaffold die until Option-B deployed, §15.5)"
+row "context-pack / two-pass judge"    "TODO      (judge.sh — §15.5)"
+row "adversarial-test sandbox"         "TODO      (env -i / no-net worktree — §15.5)"
+echo "Legend: ENFORCED=in code · PARTIAL=some · TODO=not yet · details: docs/REVIEW-v0.1.md"

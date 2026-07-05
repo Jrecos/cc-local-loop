@@ -1,0 +1,6 @@
+--- a/src/util.py
++++ b/src/util.py
+@@ -1,2 +1,2 @@
+ def clamp(x, lo, hi):
+-    return x
++    return max(lo, min(hi, x))   # correct: clamp x into [lo, hi]
