@@ -1,0 +1,37 @@
+{
+  "suite": "cc-local-loop-calibration",
+  "frozen": true,
+  "version": "0.1.0",
+  "cases": [
+    {
+      "id": "num-001",
+      "category": "numeric",
+      "prompt": "Review this diff for correctness against the spec.",
+      "artifact": "seeds/num-001.diff",
+      "expected_verdict": "REJECT",
+      "assertions": [
+        { "id": "a1", "type": "quality", "text": "Flags the off-by-one / rounding error in the changed calculation." }
+      ]
+    },
+    {
+      "id": "spec-001",
+      "category": "spec",
+      "prompt": "Review this diff for spec-conformance.",
+      "artifact": "seeds/spec-001.diff",
+      "expected_verdict": "REJECT",
+      "assertions": [
+        { "id": "a1", "type": "quality", "text": "Detects the acceptance criterion FR-00X that the diff fails to satisfy." }
+      ]
+    },
+    {
+      "id": "clean-001",
+      "category": "clean",
+      "prompt": "Review this diff for correctness against the spec.",
+      "artifact": "seeds/clean-001.diff",
+      "expected_verdict": "APPROVE",
+      "assertions": [
+        { "id": "a1", "type": "quality", "text": "Does NOT raise a Critical/High violation on a correct change (false-positive control)." }
+      ]
+    }
+  ]
+}

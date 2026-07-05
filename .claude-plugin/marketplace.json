@@ -1,0 +1,20 @@
+{
+  "name": "cc-local-loop",
+  "owner": {
+    "name": "Jhonatan Reco",
+    "url": "https://github.com/Jrecos"
+  },
+  "metadata": {
+    "description": "Marketplace serving the cc-local-loop plugin (an Opus-orchestrated, local-model-executed dev loop).",
+    "version": "0.1.0"
+  },
+  "plugins": [
+    {
+      "name": "cc-local-loop",
+      "source": ".",
+      "description": "Opus orchestrates; local models implement via OpenCode; a cross-family Gemma judge gates. Judge-only validation, deterministic harness, human-gated self-improvement.",
+      "version": "0.1.0",
+      "keywords": ["orchestration", "local-llm", "opencode", "self-improving"]
+    }
+  ]
+}

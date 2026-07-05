@@ -1,0 +1,14 @@
+# --- runtime data plane (written into the target project's .cc-local-loop/, not here) ---
+.cc-local-loop/
+*.ledger.jsonl
+candidates.jsonl
+runs.jsonl
+# --- eval workspace (regenerated; never hand-edited) ---
+evals/workspace/
+# --- OS / editor ---
+.DS_Store
+*.swp
+Thumbs.db
+node_modules/
+__pycache__/
+*.pyc
