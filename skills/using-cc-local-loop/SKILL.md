@@ -22,12 +22,30 @@ or judge.
 | understand how dispatch / the judge work | read `cc-local-loop:dispatch` / `cc-local-loop:judge` (knowledge only) |
 | distill lessons from past runs | `cc-local-loop:reflect` (→ quarantine) |
 | promote a lesson (open a PR) | **`/cc-local-loop:promote-lessons`** (human-started) |
+| see loop metrics / analyze past runs | `cc-local-loop:metrics` (read-only report) |
 | the deep design + E2E walkthrough | `${CLAUDE_PLUGIN_ROOT}/references/architecture.md` |
 
 ## Status (read-only)
 
 - Guarantee matrix (what's enforced-in-code vs TODO): `bash "${CLAUDE_PLUGIN_ROOT}/scripts/doctor.sh"`.
-- Loop state (in the target project): `.cc-local-loop/{ACTIVE, frozen.json, ledger/runs.jsonl, candidates.jsonl}`.
+- Loop state (in the target project): `.cc-local-loop/{ACTIVE, frozen.json, ledger/events.jsonl, candidates.jsonl}`.
+
+## Telemetry & the improvement cadence
+
+Every run appends observability events to `.cc-local-loop/ledger/events.jsonl` (via `emit.sh`). Analyze them offline
+with `cc-local-loop:metrics` (or point DuckDB at the JSONL). **Telemetry is never injected into a prompt (G1), and
+`cost per accepted change` is a gauge, not a target (G6).**
+
+To make the loop compound, run the eval cadence on a schedule. Skills aren't invocable in `claude -p` headless, so
+schedule the **script** (`eval-run.sh`), never the skill:
+
+```bash
+# nightly (launchd/cron/Routine): re-run the frozen calibration set → snapshot + delta → eval_delta events
+0 3 * * *  cd /path/to/target-repo && bash "${CLAUDE_PLUGIN_ROOT}/scripts/eval-run.sh"
+```
+
+The cadence is a **PROPOSER only** — newly passing/failing cases surface via `cc-local-loop:reflect` (→ quarantine).
+Promotion stays your human-gated PR (`/cc-local-loop:promote-lessons`); the cadence never edits `lessons.md`.
 
 ## Do not
 

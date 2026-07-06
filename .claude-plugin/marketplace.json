@@ -6,13 +6,13 @@
     "url": "https://github.com/Jrecos"
   },
   "description": "Marketplace serving the cc-local-loop plugin (an Opus-orchestrated, local-model-executed dev loop).",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "plugins": [
     {
       "name": "cc-local-loop",
       "source": "./",
-      "description": "Opus orchestrates; local models implement via OpenCode; a cross-family Gemma judge gates. Judge-only validation, deterministic harness, human-gated self-improvement.",
-      "version": "0.3.0"
+      "description": "Opus orchestrates; local models implement via OpenCode; a cross-family Gemma judge gates. Judge-only validation, deterministic harness, observability-only telemetry, human-gated self-improvement.",
+      "version": "0.4.0"
     }
   ]
 }

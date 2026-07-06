@@ -6,11 +6,11 @@
 : "${NODE_AI_URL:=http://127.0.0.1:8080}"   # OVERRIDE per install: export NODE_AI_URL=http://<node-ai-host>:8080
 : "${CLAUDE_PROJECT_DIR:=$(pwd)}"
 DATA_DIR="${CLAUDE_PROJECT_DIR}/.cc-local-loop"
-LEDGER="${DATA_DIR}/ledger/runs.jsonl"
+LEDGER="${DATA_DIR}/ledger/events.jsonl"
 
 # SINGLE SOURCE OF TRUTH for protected paths (anchored; consumed by freeze, gate, and dispatch deny-globs).
 # Matches git-relative paths (NO leading slash). Covers tests, specs/SDD, CI, lockfiles, coverage/build config.
-PROTECTED_PAT='(^|/)(tests?|__tests__|e2e|specs?|\.specify|\.github|\.gitlab|\.circleci|\.buildkite)/|\.(test|spec)\.|(^|/)(package|composer)\.json$|(^|/)(package-lock\.json|pnpm-lock\.yaml|yarn\.lock|bun\.lockb|Cargo\.lock|poetry\.lock|uv\.lock)$|(^|/)(jest\.config|vitest\.config|vite\.config|\.nycrc|codecov|pyproject\.toml|setup\.cfg|tox\.ini|\.coveragerc)[^/]*$|(^|/)(tasks|progress)\.md$|(^|/)constitution[^/]*$'
+PROTECTED_PAT='(^|/)(tests?|__tests__|e2e|specs?|\.specify|\.github|\.gitlab|\.circleci|\.buildkite)/|\.(test|spec)\.|(^|/)(package|composer)\.json$|(^|/)(package-lock\.json|pnpm-lock\.yaml|yarn\.lock|bun\.lockb|Cargo\.lock|poetry\.lock|uv\.lock)$|(^|/)(jest\.config|vitest\.config|vite\.config|\.nycrc|codecov|pyproject\.toml|setup\.cfg|tox\.ini|\.coveragerc)[^/]*$|(^|/)(tasks|progress)\.md$|(^|/)constitution[^/]*$|(^|/)evals/calibration/'
 
 log(){ printf '[cc-local-loop] %s\n' "$*" >&2; }
 die(){ printf '[cc-local-loop] ABORT: %s\n' "$*" >&2; exit 1; }
@@ -55,8 +55,17 @@ assert_cross_family(){ # <impl_model> <judge_model>
 health_check(){ curl -fsS --max-time 5 "${NODE_AI_URL}/health"    >/dev/null 2>&1 \
              || curl -fsS --max-time 5 "${NODE_AI_URL}/v1/models" >/dev/null 2>&1; }
 
-ledger_append(){ # <json-row>
+ledger_append(){ # <json-row> — serialize appends so a concurrent emitter can't tear a line (rows near the 8KB cap
+                 # take >1 write() and O_APPEND is only per-write() atomic). macOS ships no flock(1) → mkdir-lock.
   mkdir -p "$(dirname "$LEDGER")"
-  if command -v flock >/dev/null 2>&1; then ( flock 9; printf '%s\n' "$1" >> "$LEDGER" ) 9>>"$LEDGER"
-  else printf '%s\n' "$1" >> "$LEDGER"; fi
+  if command -v flock >/dev/null 2>&1; then
+    ( flock -w 2 9 || exit 0; printf '%s\n' "$1" >> "$LEDGER" ) 9>>"$LEDGER"
+  else
+    local lock="${LEDGER}.lock" i=0 owned=0
+    while ! mkdir "$lock" 2>/dev/null; do i=$((i+1)); [ "$i" -ge 40 ] && break; sleep 0.05; done  # ≤2s, then proceed
+    [ "$i" -lt 40 ] && owned=1                        # only true when mkdir SUCCEEDED (we hold the lock)
+    printf '%s\n' "$1" >> "$LEDGER"
+    [ "$owned" -eq 1 ] && { rmdir "$lock" 2>/dev/null || true; }   # never rmdir a lock a live holder still owns
+  fi
+  return 0   # telemetry is best-effort — always succeed, even on the lock-timeout path (safe under a future `set -e`)
 }

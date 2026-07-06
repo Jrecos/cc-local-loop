@@ -13,6 +13,8 @@ jobs:
           done
       - name: bash syntax
         run: for s in scripts/*.sh scripts/harness/*.sh; do bash -n "$s" && echo "ok $s"; done
+      - name: lessons.md cap + provenance (G4)
+        run: bash scripts/lessons-lint.sh
       - name: shellcheck
         run: shellcheck -S warning scripts/*.sh scripts/harness/*.sh || true
       - name: regression net

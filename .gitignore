@@ -1,8 +1,11 @@
 # --- runtime data plane (written into the target project's .cc-local-loop/, not here) ---
-.cc-local-loop/
+# Exclude the CONTENTS (not the dir) so the promotion audit trail can be re-included — git can't un-ignore a child
+# whose parent DIR is excluded. Keep in sync with run-loop step 0's .git/info/exclude carve-out.
+.cc-local-loop/*
+!.cc-local-loop/promoted.jsonl
 *.ledger.jsonl
 candidates.jsonl
-runs.jsonl
+events.jsonl
 # --- eval workspace (regenerated; never hand-edited) ---
 evals/workspace/
 # --- OS / editor ---

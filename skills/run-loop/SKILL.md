@@ -26,9 +26,14 @@ Run preflight FIRST; if it exits non-zero, STOP and report — dispatch nothing.
 ```bash
 "${CLAUDE_PLUGIN_ROOT}/scripts/preflight.sh"                                  # refuses unless the cage is verified (§15.5)
 mkdir -p "${CLAUDE_PROJECT_DIR}/.cc-local-loop" && : > "${CLAUDE_PROJECT_DIR}/.cc-local-loop/ACTIVE"
+export CCLL_RUN_ID="$(date -u +%Y%m%dT%H%M%SZ)-$$"                            # telemetry run id (emit.sh stamps it)
+printf '%s' "$CCLL_RUN_ID" > "${CLAUDE_PROJECT_DIR}/.cc-local-loop/RUN_ID"    # Stop hook reads this to join run_end→run_start
 EX="$(git -C "${CLAUDE_PROJECT_DIR}" rev-parse --git-path info/exclude)"       # worktree-safe (.git may be a file)
-grep -qxF '.cc-local-loop/' "$EX" 2>/dev/null || echo '.cc-local-loop/' >> "$EX"   # keep runtime state out of the repo
+grep -qxF '.cc-local-loop/*' "$EX" 2>/dev/null || printf '%s\n' '.cc-local-loop/*' '!.cc-local-loop/promoted.jsonl' >> "$EX"
+# ^ keep runtime state out of the repo, BUT carve out promoted.jsonl (the audit trail a lesson PR must carry). Git
+#   can't re-include a child if the parent DIR is excluded, so we exclude the CONTENTS (/*) and negate the one file.
 "${CLAUDE_PLUGIN_ROOT}/scripts/state.sh" arming 0 "$(git -C "${CLAUDE_PROJECT_DIR}" rev-parse --short HEAD)" ""  # STATUS.md + loop_state.json
+"${CLAUDE_PLUGIN_ROOT}/scripts/emit.sh" run_start '{"plugin":"cc-local-loop"}'   # observability-only event stream (never injected, G1)
 ```
 
 The `ACTIVE` marker is what lets `dispatch.sh` / `judge.sh` / the Stop hook run — without it they refuse. This is the
@@ -54,9 +59,13 @@ mechanical human-gate: side-effectful steps only run inside a loop you started.
 6. **guards** — on fail, `harness/guards.sh <task-id> "<the gate's sorted failing[] JSON>"` → CONTINUE (re-dispatch
    the SAME model with a freshly built narrow context) or ESCALATE. Passing the failing signature arms the
    no-progress + oscillation circuit breakers; guards also writes a liveness heartbeat each iteration.
-7. **ledger + state** — after each task reaches DONE/ESCALATE, append a **structured** row (task_id, gate result,
-   judge verdict, retries, escalation, wall-time) via `ledger-append.sh` and refresh `state.sh` — so `reflect` can
-   mine the ledger and you can read `STATUS.md` at a glance. The Stop hook records session stubs only.
+7. **telemetry + state** — pass each harness script's **own JSON verbatim** to `emit.sh` (don't retype it — G8):
+   `emit.sh gate "$gate_json"`, `emit.sh judge "$judge_json"`, `emit.sh guard "$guard_json"`, `emit.sh route …`; at
+   task end `emit.sh task_end '{"task_id":"…","outcome":"accepted|escalated_accepted|abandoned","iters":N}'`; refresh
+   `state.sh`. `emit.sh` stamps `source:"orchestrator"` and its envelope (`event`/`run_id`/`source`) **wins over the
+   payload**, so a relayed row can't forge its type. (v0.5: the harness scripts will call `emit.sh … harness`
+   themselves.) **Telemetry is observability-only — NEVER injected into any prompt (G1).** `reflect` mines the event
+   stream (`.cc-local-loop/ledger/events.jsonl`); you read `STATUS.md` at a glance. See `cc-local-loop:metrics`.
 
 ## 2. Stop rules
 

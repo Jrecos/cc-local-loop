@@ -2,6 +2,32 @@
 
 All notable changes to `cc-local-loop` are documented here. Format: [Keep a Changelog](https://keepachangelog.com); versioning: [SemVer](https://semver.org).
 
+## [0.4.0] — 2026-07-05
+### Added — observability-only telemetry + a human-gated improvement cadence
+A design council (Fable, under the ETH-Zurich lens) verified the layer *before* build, then the same loop
+(implement → gate → Fable judge → fix → re-judge) hardened it across two review rounds. Regression net grew **49 → 71 probes**.
+- **`emit.sh`** — a **validated** event writer feeding ONE stream (`.cc-local-loop/ledger/events.jsonl`). Whitelisted event
+  names, byte-accurate ≤8KB cap, single-JSON-object only, and an **envelope that wins over the payload** so a caller can't
+  forge `event`/`run_id`/`source` (G8). Always exits 0 — telemetry never kills the loop.
+- **`metrics.sh` + skill `metrics`** — **read-only** report (accepted changes, escalation rate, judge/gate rates, lesson
+  funnel, cost-per-accepted-change as a **gauge, never a target** — G6). Resilient per-line parse: one torn/scalar line
+  can't blank the report. **Never injected into a prompt (G1).**
+- **`eval-run.sh`** — the improvement **cadence** unit (cron/launchd/Routine calls the *script*, not a skill). Re-runs the
+  **frozen** calibration set → per-run snapshot → `eval_delta` events. **PROPOSER only** — it never promotes or opens a PR (G3).
+- **`lessons-lint.sh`** — mechanical **cap** (≤15 bullets / ≤2K tokens) + **provenance** (ID **and** `[seed]`/`[cand_]`) + header
+  sentinel, **fail-closed**, wired at **preflight + promote-check + CI** (G4). Indented/`*`/`+` bullets and above-heading
+  content can't evade it; an awk comment-stripper (not a `sed` range that runs to EOF).
+- **Wiring:** `run-loop` step 0 stamps `CCLL_RUN_ID` (persisted for the Stop hook's `run_end`) and emits `run_start`; step 7
+  relays each harness script's own JSON verbatim. `reflect` mines `events.jsonl` (+ the `eval_delta` evidence class).
+  `promote-check.sh` enforces **additive-only** promotions (blocks a wholesale-rewrite delete). `PROTECTED_PAT` now covers
+  `evals/calibration/` so the yardstick is mechanically un-editable in-loop. Portable ledger locking (macOS has no `flock`).
+- **Data plane:** `.gitignore` / `.git/info/exclude` now exclude the directory's **contents** with a carve-out
+  (`!.cc-local-loop/promoted.jsonl`) so a lesson-promotion PR can carry its audit trail. `doctor.sh` gains 4 rows.
+### Guardrails (G1–G8)
+G1 one injected memory file (telemetry never in a prompt) · G2 schema-pinned state · G3 cadence proposes, humans promote ·
+G4 mechanical lessons-lint · G5 additive deltas only · G6 frozen set is the arbiter, cost is inert · G7 retention split ·
+G8 deterministic telemetry authorship.
+
 ## [0.3.0] — 2026-07-05
 ### Added — field-benchmark hardening (from two write-ups: a Strix-Halo-class serving bench + a loop-engineering roadmap)
 Implemented and verified by the same review loop (implement → gate → Fable judge → fix → re-gate). Regression net grew **36 → 49 probes**.

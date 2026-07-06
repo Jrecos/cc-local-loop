@@ -15,14 +15,15 @@ calibration set. Promotion is separate + human-gated (`cc-local-loop:promote-les
 
 ## Steps
 
-0. **Guard.** If `${CLAUDE_PROJECT_DIR}/.cc-local-loop/ledger/runs.jsonl` is missing or has no structured rows since
-   the last reflect, report "nothing to distill" and STOP — do not spend a subagent.
-1. **Read the ledger** (telemetry — never injected anywhere else). Structured per-task rows carry
-   `{run_id, ts, git_sha, task_id, outcome, gate_results, judge, retries, escalation}` (written by run-loop step 7;
-   the Stop hook writes session stubs only). If the required fields are absent, **refuse** — do not mine stubs for
-   "patterns."
+0. **Guard.** If `${CLAUDE_PROJECT_DIR}/.cc-local-loop/ledger/events.jsonl` is missing or has no structured events
+   since the last reflect, report "nothing to distill" and STOP — do not spend a subagent.
+1. **Read the event stream** (`.cc-local-loop/ledger/events.jsonl`; telemetry — never injected anywhere else).
+   `task_end` / `gate` / `judge` / `escalation` events carry `{run_id, task_id, outcome, status, failing[], verdict,
+   iter, …}` (emitted by run-loop step 7 from the harness JSON; the Stop hook writes `run_end` stubs only). If the
+   required fields are absent, **refuse** — do not mine stubs for "patterns."
 2. **Find outcome-evidence patterns** (not vibes): same failing-gate signature across **≥3** tasks · an
-   **escalation-then-pass** · **≥3 ADJUST rounds** on one task.
+   **escalation-then-pass** · **≥3 ADJUST rounds** on one task · an **`eval_delta`** (a frozen-calibration case that
+   newly passes/fails — emitted by the `eval-run.sh` cadence).
 3. **Launch the `cc-local-loop:distiller` agent** (Task tool, isolated context). It RETURNS one additive delta
    bullet (never a rewrite). Priority: patch > amend > add-reference > new > skip.
 4. **Append to quarantine** via `"${CLAUDE_PLUGIN_ROOT}/scripts/candidates-append.sh"` — one object:

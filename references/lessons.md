@@ -8,8 +8,9 @@
 > (ETH Zurich, [arXiv 2602.11988](https://arxiv.org/abs/2602.11988)).
 >
 > **Additions are human-gated only** — via `promote-lessons` (a PR carrying non-regression evidence). Nothing here
-> is auto-written. Each bullet carries an ID + provenance. Stale agent bullets decay (30d → stale, 90d → archive);
-> human-authored / pinned bullets never auto-prune.
+> is auto-written. Each bullet carries an ID **and** provenance (enforced by `lessons-lint.sh`, fail-closed). The set
+> is **capped**: when full, a new lesson must **replace** a lower-value one at promotion review (human decision) —
+> there is no automatic time-decay.
 
 ## Lessons
 

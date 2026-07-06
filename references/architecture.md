@@ -46,9 +46,10 @@ opencode-mcp are interactive-only. See homelab doc §3.3 / §15.3 / §15.7 (buil
 
 ## Self-improvement (safe, 4 stages)
 
-`collect (hook→ledger) → distill (reflect → quarantine) → gate (frozen calibration) → promote (human PR)`. The
-environment gets sharper; the model stays the same. The loop never touches its own gates or yardstick. See homelab
-doc §15.4.
+`collect (harness → emit.sh → events.jsonl; Stop hook adds run_end) → measure (eval-run cadence → eval_delta) →
+distill (reflect → quarantine) → gate (frozen calibration) → promote (human PR)`. Telemetry is observability-only and
+never injected into a prompt (G1); the cadence proposes but a human promotes (G3). The environment gets sharper; the
+model stays the same. The loop never touches its own gates or yardstick. See homelab doc §15.4.
 
 ## End-to-end example — one feature through the loop
 
@@ -114,7 +115,7 @@ $ rm -f .cc-local-loop/ACTIVE                          # disarm the loop
 
 The next run injects the improved `lessons.md`. **The environment got sharper; the model never changed.**
 
-> **Today (v0.2 scaffold):** steps ④ and ⑨ `die` until node-ai Option-B is deployed (§15.5); `bash scripts/doctor.sh`
+> **Today (v0.4 scaffold):** steps ④ and ⑨ `die` until node-ai Option-B is deployed (§15.5); `bash scripts/doctor.sh`
 > shows exactly what is ENFORCED vs TODO. The routing, freeze, scope-gate, hash-verify, guards, cross-family assert,
 > and the whole feedback-loop containment are already live and code-enforced.
 

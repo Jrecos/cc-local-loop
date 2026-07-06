@@ -115,6 +115,87 @@ CLAUDE_PROJECT_DIR="$Bp" bash "$ROOT/scripts/build-context.sh" NP "Error at ../x
 grep -q 'sk-LEAK' "$Bp/.cc-local-loop/context-NP.md" 2>/dev/null && no "out-of-repo path rejected" || ok "out-of-repo path rejected"
 rm -rf "$Bp" "$sec"
 
+echo "18. emit.sh — validates, writes valid, drops bad, ALWAYS exit 0 (telemetry never kills the loop, G8)"
+Em="$(mktemp -d)"
+CLAUDE_PROJECT_DIR="$Em" CCLL_RUN_ID=t bash "$ROOT/scripts/emit.sh" bogus '{}'          >/dev/null 2>&1 && ok "emit unknown-event exit0" || no "emit unknown-event exit0"
+CLAUDE_PROJECT_DIR="$Em" CCLL_RUN_ID=t bash "$ROOT/scripts/emit.sh" gate  '[1,2]'         >/dev/null 2>&1 && ok "emit non-object exit0"  || no "emit non-object exit0"
+CLAUDE_PROJECT_DIR="$Em" CCLL_RUN_ID=t bash "$ROOT/scripts/emit.sh" gate  '{"status":"pass"}' >/dev/null 2>&1
+Lg="$Em/.cc-local-loop/ledger/events.jsonl"
+{ [ -f "$Lg" ] && jq -e '.event=="gate" and .schema==1 and (.ts|type=="string")' "$Lg" >/dev/null 2>&1; } && ok "emit writes valid event" || no "emit writes valid event"
+[ "$(grep -c . "$Lg" 2>/dev/null)" = 1 ] && ok "emit dropped the 2 bad rows" || no "emit dropped the 2 bad rows"
+rm -rf "$Em"
+
+echo "19. metrics.sh — read-only; empty noted, task_end aggregated (accepted vs total)"
+Me="$(mktemp -d)"
+CLAUDE_PROJECT_DIR="$Me" bash "$ROOT/scripts/metrics.sh" "$Me" >/dev/null 2>&1 && ok "metrics empty ok" || no "metrics empty ok"
+CLAUDE_PROJECT_DIR="$Me" CCLL_RUN_ID=t bash "$ROOT/scripts/emit.sh" task_end '{"task_id":"A","outcome":"accepted","iters":1}'  >/dev/null 2>&1
+CLAUDE_PROJECT_DIR="$Me" CCLL_RUN_ID=t bash "$ROOT/scripts/emit.sh" task_end '{"task_id":"B","outcome":"abandoned","iters":6}' >/dev/null 2>&1
+jm="$(CLAUDE_PROJECT_DIR="$Me" bash "$ROOT/scripts/metrics.sh" "$Me" --json 2>/dev/null)"
+printf '%s' "$jm" | jq -e '.tasks_total==2 and .tasks_accepted==1' >/dev/null 2>&1 && ok "metrics aggregates task_end" || no "metrics aggregates task_end"
+rm -rf "$Me"
+
+echo "20. eval-run.sh — PROPOSER only (never promotes) + snapshots"
+if grep -vE '^[[:space:]]*#' "$ROOT/scripts/eval-run.sh" | grep -qE 'promote-lessons|promote-check|gh pr|git push'; then no "eval-run proposer-only"; else ok "eval-run proposer-only"; fi
+Ev="$(mktemp -d)"
+CLAUDE_PROJECT_DIR="$Ev" bash "$ROOT/scripts/eval-run.sh" >/dev/null 2>&1 && ok "eval-run first snapshot exits ok" || no "eval-run first snapshot exits ok"
+ls "$Ev/.cc-local-loop/evals/"*.jsonl >/dev/null 2>&1 && ok "eval-run wrote a snapshot" || no "eval-run wrote a snapshot"
+rm -rf "$Ev"
+
+echo "21. lessons-lint.sh — passes shipped lessons.md, FAILS a >15-bullet file (G4 cap)"
+bash "$ROOT/scripts/lessons-lint.sh" >/dev/null 2>&1 && ok "lessons-lint passes shipped file" || no "lessons-lint passes shipped file"
+Ll="$(mktemp)"; { echo '# lessons — the ONE injected memory file'; for i in $(seq 1 20); do printf -- '- **L%03d** x\n' "$i"; done; } > "$Ll"
+bash "$ROOT/scripts/lessons-lint.sh" "$Ll" >/dev/null 2>&1 && no "lessons-lint rejects >cap file" || ok "lessons-lint rejects >cap file"
+rm -f "$Ll"
+
+echo "22. G1 — build-context.sh never injects telemetry (events.jsonl content stays out of context)"
+Bg="$(mktemp -d)"
+( cd "$Bg" && git init -q && git config user.email a@b.c && git config user.name t && echo 'def f(): pass' > mod.py && git add -A && git commit -qm b && echo x >> mod.py && git commit -aqm c ) >/dev/null 2>&1
+mkdir -p "$Bg/.cc-local-loop/ledger"; echo '{"event":"gate","secret":"TELEMETRY_SENTINEL_9421"}' > "$Bg/.cc-local-loop/ledger/events.jsonl"
+CLAUDE_PROJECT_DIR="$Bg" bash "$ROOT/scripts/build-context.sh" G1 "FAIL mod.py:1" >/dev/null 2>&1
+grep -q 'TELEMETRY_SENTINEL_9421' "$Bg/.cc-local-loop/context-G1.md" 2>/dev/null && no "telemetry NOT in built context" || ok "telemetry NOT in built context"
+rm -rf "$Bg"
+
+echo "23. eval-run.sh — delta actually FIRES an eval_delta when a case changes (C1 regression guard)"
+Ed="$(mktemp -d)"; mkdir -p "$Ed/.cc-local-loop/evals"
+jq -c '.cases[] | {id, category, expected_verdict, result:"pass"}' "$ROOT/evals/calibration/cases.json" > "$Ed/.cc-local-loop/evals/2000-01-01T000000Z.jsonl"
+CLAUDE_PROJECT_DIR="$Ed" CCLL_RUN_ID=t bash "$ROOT/scripts/eval-run.sh" >/dev/null 2>&1
+grep -q '"event":"eval_delta"' "$Ed/.cc-local-loop/ledger/events.jsonl" 2>/dev/null && ok "eval_delta fires on change" || no "eval_delta fires on change"
+rm -rf "$Ed"
+
+echo "24. emit.sh — envelope WINS: a payload cannot forge event/run_id (G8 whitelist authoritative)"
+Eo="$(mktemp -d)"
+CLAUDE_PROJECT_DIR="$Eo" CCLL_RUN_ID=real bash "$ROOT/scripts/emit.sh" gate '{"event":"lesson","run_id":"forged","action":"promoted"}' >/dev/null 2>&1
+Lo="$Eo/.cc-local-loop/ledger/events.jsonl"
+{ [ -f "$Lo" ] && jq -e '.event=="gate" and .run_id=="real" and .source=="orchestrator"' "$Lo" >/dev/null 2>&1; } && ok "emit envelope wins (no forge)" || no "emit envelope wins (no forge)"
+rm -rf "$Eo"
+
+echo "25. lessons-lint.sh — an INDENTED bullet can't smuggle un-provenanced content past the gate (H3)"
+Li="$(mktemp)"; { echo '# lessons — the ONE injected memory file'; echo; echo '## Lessons'; echo '  - sneaky uncapped lesson, no provenance'; } > "$Li"
+bash "$ROOT/scripts/lessons-lint.sh" "$Li" >/dev/null 2>&1 && no "lessons-lint catches indented bullet" || ok "lessons-lint catches indented bullet"
+rm -f "$Li"
+
+echo "26. build-context.sh — a TRACKED .cc-local-loop file is DENIED from context (C1 explicit deny)"
+Bt="$(mktemp -d)"
+( cd "$Bt" && git init -q && git config user.email a@b.c && git config user.name t \
+  && echo 'def f(): pass' > mod.py && mkdir -p .cc-local-loop && echo '{"x":"TRACKED_SENTINEL_7777"}' > .cc-local-loop/promoted.jsonl \
+  && git add -A && git commit -qm b \
+  && echo x >> mod.py && echo '{"x":"TRACKED_SENTINEL_7777","v":2}' > .cc-local-loop/promoted.jsonl && git add -A && git commit -qm c ) >/dev/null 2>&1
+CLAUDE_PROJECT_DIR="$Bt" bash "$ROOT/scripts/build-context.sh" CT "FAIL mod.py:1" >/dev/null 2>&1
+grep -q 'TRACKED_SENTINEL_7777' "$Bt/.cc-local-loop/context-CT.md" 2>/dev/null && no "tracked data-plane file denied" || ok "tracked data-plane file denied"
+rm -rf "$Bt"
+
+echo "27. lessons-lint.sh — a single-line HTML comment can't hide bullets after it (NEW-3 G4 bypass guard)"
+Lc="$(mktemp)"; { echo '# lessons — the ONE injected memory file'; echo; echo '## Lessons'; echo '<!-- note -->'; echo '- sneaky uncapped bullet, no provenance'; } > "$Lc"
+bash "$ROOT/scripts/lessons-lint.sh" "$Lc" >/dev/null 2>&1 && no "single-line comment doesn't hide bullets" || ok "single-line comment doesn't hide bullets"
+rm -f "$Lc"
+
+echo "28. metrics.sh — a scalar/array JSON line can't abort the report (NEW-2)"
+Ms="$(mktemp -d)"; mkdir -p "$Ms/.cc-local-loop/ledger"
+printf '%s\n' '{"event":"task_end","outcome":"accepted"}' '123' '"hello"' '[1,2]' '{"event":"escalation"}' > "$Ms/.cc-local-loop/ledger/events.jsonl"
+js="$(CLAUDE_PROJECT_DIR="$Ms" bash "$ROOT/scripts/metrics.sh" "$Ms" --json 2>/dev/null)"
+printf '%s' "$js" | jq -e '.tasks_accepted==1 and .escalations==1' >/dev/null 2>&1 && ok "scalar/array lines dropped, rest aggregates" || no "scalar/array lines dropped, rest aggregates"
+rm -rf "$Ms"
+
 echo ""
 printf 'RESULT: %d passed, %d failed\n' "$P" "$F"
 [ "$F" -eq 0 ]
