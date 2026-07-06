@@ -101,6 +101,9 @@ rm -rf "$Ci"
 echo "15. sandbox-run.sh runs the command (fallback ok)"
 [ "$(bash "$ROOT/scripts/sandbox-run.sh" echo hi 2>/dev/null)" = hi ] && ok "sandbox runs cmd" || no "sandbox runs cmd"
 
+echo "15b. sandbox-run.sh forced-fallback (no live runtime) still runs cmd — macOS portability"
+[ "$(CCLL_SANDBOX_RUNTIME=none bash "$ROOT/scripts/sandbox-run.sh" echo hi 2>/dev/null)" = hi ] && ok "sandbox fallback runs cmd (no timeout/gtimeout)" || no "sandbox fallback runs cmd"
+
 echo "16. build-context.sh survives a no-file-token failure (BLOCKER A)"
 Bx="$(mktemp -d)"
 ( cd "$Bx" && git init -q && git config user.email a@b.c && git config user.name t && echo a>a.py && git add -A && git commit -qm b && echo b>>a.py && git commit -aqm c ) >/dev/null 2>&1

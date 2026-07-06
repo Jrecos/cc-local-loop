@@ -2,6 +2,15 @@
 
 All notable changes to `cc-local-loop` are documented here. Format: [Keep a Changelog](https://keepachangelog.com); versioning: [SemVer](https://semver.org).
 
+## [Unreleased]
+### Fixed — sandbox-run.sh macOS portability
+- `sandbox-run.sh` no longer dies when a docker/podman **binary** is present but its **daemon is down**: it now probes
+  daemon liveness (`docker info` / `podman info`) *before* committing via `exec`, so a dead runtime falls through to the
+  `env -i` fallback instead of `exec`-ing into a broken socket.
+- The fallback no longer assumes a host `timeout`: stock macOS ships none, so it resolves `timeout`/`gtimeout` (passing the
+  binary's dir on `PATH`, since `env -i` wipes it) and degrades to a **no-timeout-wall** with a loud WARN rather than failing.
+- New deterministic probe **15b** forces the fallback path (`CCLL_SANDBOX_RUNTIME=none`) regardless of runtime. Gate **71 → 72**.
+
 ## [0.4.0] — 2026-07-05
 ### Added — observability-only telemetry + a human-gated improvement cadence
 A design council (Fable, under the ETH-Zurich lens) verified the layer *before* build, then the same loop
