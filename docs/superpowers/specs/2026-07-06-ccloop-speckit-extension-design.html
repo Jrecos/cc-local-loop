@@ -1,0 +1,595 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ccloop — cc-local-loop as a spec-kit 0.12.4 bundle · Design</title>
+<style>
+  :root{
+    --bg:#0d1117; --panel:#161b22; --panel2:#1c2230; --ink:#e6edf3; --muted:#9aa7b4;
+    --line:#2b333d; --accent:#7ee787; --accent2:#79c0ff; --warn:#ffa657; --bad:#ff7b72;
+    --good:#3fb950; --code:#0b0f14; --chip:#21262d;
+    --mono:"SFMono-Regular",ui-monospace,"JetBrains Mono",Menlo,Consolas,monospace;
+    --sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,Roboto,Helvetica,Arial,sans-serif;
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);
+    line-height:1.62;font-size:16px;-webkit-font-smoothing:antialiased}
+  .wrap{max-width:920px;margin:0 auto;padding:0 24px 120px}
+  header.hero{padding:56px 24px 40px;border-bottom:1px solid var(--line);
+    background:radial-gradient(1200px 400px at 20% -10%,rgba(121,192,255,.10),transparent 60%),
+               radial-gradient(1000px 380px at 90% -20%,rgba(126,231,135,.08),transparent 55%)}
+  .hero .wrap{padding-bottom:0}
+  .kicker{font-family:var(--mono);font-size:12.5px;letter-spacing:.14em;text-transform:uppercase;
+    color:var(--accent2);margin:0 0 12px}
+  h1{font-size:34px;line-height:1.15;margin:0 0 10px;letter-spacing:-.01em}
+  h1 .mono{font-family:var(--mono);color:var(--accent)}
+  .sub{color:var(--muted);font-size:17px;max-width:70ch;margin:0}
+  .badges{display:flex;flex-wrap:wrap;gap:8px;margin:22px 0 0}
+  .badge{font-family:var(--mono);font-size:12px;padding:5px 10px;border-radius:999px;
+    border:1px solid var(--line);background:var(--chip);color:var(--muted)}
+  .badge b{color:var(--ink);font-weight:600}
+  .badge.ok{border-color:rgba(63,185,80,.4);color:#8ff0a4}
+  .badge.warn{border-color:rgba(255,166,87,.4);color:var(--warn)}
+
+  nav.toc{position:sticky;top:0;z-index:5;background:rgba(13,17,23,.86);backdrop-filter:blur(8px);
+    border-bottom:1px solid var(--line);padding:10px 24px}
+  nav.toc .wrap{padding:0;display:flex;gap:6px;flex-wrap:wrap}
+  nav.toc a{font-family:var(--mono);font-size:12px;color:var(--muted);text-decoration:none;
+    padding:5px 9px;border-radius:6px}
+  nav.toc a:hover{background:var(--panel);color:var(--ink)}
+
+  section{padding-top:38px;scroll-margin-top:52px}
+  h2{font-size:22px;margin:0 0 6px;letter-spacing:-.01em;display:flex;align-items:baseline;gap:10px}
+  h2 .n{font-family:var(--mono);font-size:14px;color:var(--accent2);opacity:.8}
+  h3{font-size:16px;margin:22px 0 6px;color:var(--ink)}
+  p{margin:10px 0}
+  .lead{color:var(--muted)}
+  a{color:var(--accent2)}
+  strong{color:#fff}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:18px 20px;margin:14px 0}
+  .card.tight{padding:14px 16px}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  @media(max-width:720px){.grid2{grid-template-columns:1fr}}
+  ul,ol{margin:8px 0;padding-left:22px}
+  li{margin:5px 0}
+  code{font-family:var(--mono);font-size:13px;background:var(--chip);padding:2px 6px;border-radius:5px;color:#d9e2ec}
+  pre{background:var(--code);border:1px solid var(--line);border-radius:12px;padding:16px 18px;
+    overflow:auto;font-family:var(--mono);font-size:12.7px;line-height:1.6;color:#cdd9e5;margin:12px 0}
+  pre .c{color:#6a8394}         /* comment */
+  pre .k{color:#79c0ff}         /* key */
+  pre .s{color:#a5d6ff}         /* string */
+  pre .t{color:var(--accent)}   /* type/emphasis */
+  .flow{display:flex;flex-wrap:wrap;align-items:center;gap:8px;font-family:var(--mono);font-size:12.5px;margin:8px 0}
+  .flow .step{background:var(--panel2);border:1px solid var(--line);border-radius:7px;padding:6px 10px}
+  .flow .arw{color:var(--muted)}
+  .ladder .step.human{border-color:rgba(126,231,135,.45);color:var(--accent)}
+  table{width:100%;border-collapse:collapse;margin:12px 0;font-size:14px}
+  th,td{text-align:left;padding:9px 10px;border-bottom:1px solid var(--line);vertical-align:top}
+  th{color:var(--muted);font-weight:600;font-size:12.5px;text-transform:uppercase;letter-spacing:.05em}
+  td code{font-size:12px}
+  .tag{font-family:var(--mono);font-size:11px;padding:2px 7px;border-radius:999px;border:1px solid var(--line)}
+  .tag.conf{color:var(--bad);border-color:rgba(255,123,114,.4)}
+  .tag.ref{color:var(--good);border-color:rgba(63,185,80,.4)}
+  .tag.unk{color:var(--warn);border-color:rgba(255,166,87,.4)}
+  .callout{border-left:3px solid var(--accent2);background:var(--panel2);border-radius:0 10px 10px 0;
+    padding:12px 16px;margin:14px 0}
+  .callout.warn{border-left-color:var(--warn)}
+  .callout.good{border-left-color:var(--good)}
+  .g{display:inline-block;font-family:var(--mono);font-size:11px;color:var(--accent);
+    border:1px solid rgba(126,231,135,.35);border-radius:5px;padding:1px 6px;margin-right:4px}
+
+  /* Questions */
+  .q{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:18px 20px;margin:16px 0}
+  .q h3{margin:0 0 4px;font-size:16px}
+  .q .why{color:var(--muted);font-size:13.5px;margin:0 0 12px}
+  .opt{display:flex;gap:11px;align-items:flex-start;padding:10px 12px;border:1px solid var(--line);
+    border-radius:9px;margin:7px 0;cursor:pointer;transition:.12s}
+  .opt:hover{border-color:var(--accent2);background:var(--panel2)}
+  .opt input{margin-top:4px;accent-color:var(--accent)}
+  .opt.sel{border-color:var(--accent);background:rgba(126,231,135,.06)}
+  .opt .lab{font-weight:600}
+  .opt .rec{font-family:var(--mono);font-size:10.5px;color:var(--accent);border:1px solid rgba(126,231,135,.4);
+    border-radius:999px;padding:1px 7px;margin-left:8px;vertical-align:middle}
+  .opt .d{color:var(--muted);font-size:13px;display:block;margin-top:2px;font-weight:400}
+  .opt input[type=text]{width:100%;background:var(--code);border:1px solid var(--line);color:var(--ink);
+    border-radius:6px;padding:6px 9px;font-family:var(--mono);font-size:12.5px;margin-top:4px}
+  .answers{position:sticky;bottom:0;margin-top:26px;background:var(--panel2);
+    border:1px solid var(--accent2);border-radius:12px;padding:16px 18px}
+  .answers h3{margin:0 0 8px;color:var(--accent2)}
+  #out{white-space:pre-wrap;font-family:var(--mono);font-size:12.5px;background:var(--code);
+    border:1px solid var(--line);border-radius:9px;padding:12px 14px;color:#cdd9e5;min-height:40px}
+  .btn{font-family:var(--mono);font-size:12.5px;background:var(--accent);color:#04260f;border:0;
+    border-radius:8px;padding:9px 16px;font-weight:700;cursor:pointer;margin-top:10px}
+  .btn:hover{filter:brightness(1.08)}
+  .btn.sec{background:transparent;color:var(--muted);border:1px solid var(--line);margin-left:8px}
+  footer{color:var(--muted);font-size:13px;border-top:1px solid var(--line);margin-top:48px;padding-top:20px}
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="wrap">
+    <p class="kicker">Draft design · for review</p>
+    <h1><span class="mono">ccloop</span> — cc-local-loop as a spec-kit bundle</h1>
+    <p class="sub">Repackaging the Opus-orchestrated, local-model-executed dev loop as a first-class GitHub Spec Kit <b>0.12.4</b> extension + workflow. Orchestration is declarative YAML; every safety gate stays bash that fails closed.</p>
+    <div class="badges">
+      <span class="badge ok">spec-kit <b>0.12.4</b> ✓ updated</span>
+      <span class="badge">Approach <b>C</b> (hybrid)</span>
+      <span class="badge ok">Fable: <b>viable-with-fixes</b></span>
+      <span class="badge">invariant <b>Opus → local → Opus</b></span>
+      <span class="badge warn">G1–G8 preserved <b>+ G9</b></span>
+      <span class="badge ok">4/4 decisions <b>locked</b></span>
+    </div>
+  </div>
+</header>
+
+<nav class="toc">
+  <div class="wrap">
+    <a href="#ctx">Context</a>
+    <a href="#flow">▸ Flow</a>
+    <a href="#dec">Decisions</a>
+    <a href="#extract">Extractions</a>
+    <a href="#pack">Packaging</a>
+    <a href="#data">Data plane</a>
+    <a href="#wf">Workflow</a>
+    <a href="#ladder">Ladder</a>
+    <a href="#guard">Guardrails</a>
+    <a href="#valid">Validation</a>
+    <a href="#q">Decisions ▸</a>
+  </div>
+</nav>
+
+<div class="wrap">
+
+<section id="ctx">
+  <h2><span class="n">§0</span> What happened this session</h2>
+  <div class="grid2">
+    <div class="card tight">
+      <h3>Version gap, fixed</h3>
+      <p class="lead" style="margin:0">A project's <code>.specify/</code> is a version-pinned snapshot from init time — global CLI upgrades never rewrite it. Re-materialized the project at <b>0.12.4</b> (<code>specify init --here --force</code>). Constitution, all four extensions, and every command-skill verified intact; backups kept.</p>
+    </div>
+    <div class="card tight">
+      <h3>The jump helped</h3>
+      <p class="lead" style="margin:0">0.12.4 adds a <b>workflow engine</b> (<code>while/do-while/shell/gate/command/fan-out…</code>) and a <b>bundle</b> primitive. The loop becomes a native workflow YAML — and <b>fail-closed is native</b>: a bash step exiting non-zero halts the run.</p>
+    </div>
+  </div>
+</section>
+
+<style>
+  /* ---- Flow diagram ---- */
+  .legend{display:flex;flex-wrap:wrap;gap:14px;margin:6px 0 18px;font-size:12.5px;color:var(--muted)}
+  .legend span{display:inline-flex;align-items:center;gap:6px}
+  .dot{width:11px;height:11px;border-radius:3px;display:inline-block}
+  .d-opus{background:#79c0ff}.d-local{background:#7ee787}.d-judge{background:#d2a8ff}
+  .d-harness{background:#ffa657}.d-human{background:#f778ba}.d-core{background:#6a8394}
+
+  .pipe{display:flex;align-items:stretch;gap:0;flex-wrap:wrap;margin:10px 0 6px}
+  .pnode{position:relative;flex:1;min-width:96px;background:var(--panel);border:1px solid var(--line);
+    border-radius:9px;padding:11px 10px;text-align:center;font-family:var(--mono);font-size:12px}
+  .pnode small{display:block;color:var(--muted);font-size:10.5px;margin-top:3px}
+  .pnode.core{color:#c9d4df}
+  .pnode.here{background:linear-gradient(180deg,rgba(126,231,135,.14),rgba(126,231,135,.04));
+    border-color:var(--accent);color:#c8ffd4;flex:1.5;box-shadow:0 0 0 1px rgba(126,231,135,.25)}
+  .pnode.here b{color:var(--accent)}
+  .parrow{display:flex;align-items:center;justify-content:center;color:var(--muted);
+    font-family:var(--mono);padding:0 7px;font-size:15px}
+  .hookline{margin:4px 0 0;font-family:var(--mono);font-size:11.5px;color:var(--warn)}
+  .hookline b{color:var(--ink)}
+
+  .loopwrap{border:1px dashed var(--accent);border-radius:14px;padding:16px 16px 10px;margin:16px 0 4px;
+    background:rgba(126,231,135,.03);position:relative}
+  .loopwrap .cap{position:absolute;top:-10px;left:14px;background:var(--bg);padding:0 8px;
+    font-family:var(--mono);font-size:11px;color:var(--accent)}
+  .lane{display:grid;grid-template-columns:132px 1fr;gap:12px;align-items:center;margin:9px 0}
+  .lane .who{font-family:var(--mono);font-size:11px;color:var(--muted);text-align:right;
+    display:flex;align-items:center;justify-content:flex-end;gap:6px}
+  .lane .box{background:var(--panel);border:1px solid var(--line);border-radius:9px;padding:10px 13px;
+    display:flex;gap:10px;align-items:baseline;flex-wrap:wrap}
+  .lane .box b{font-family:var(--mono);font-size:12.5px}
+  .lane .box .m{color:var(--muted);font-size:12.5px}
+  .lane.opus .box{border-left:3px solid #79c0ff}
+  .lane.local .box{border-left:3px solid #7ee787}
+  .lane.judge .box{border-left:3px solid #d2a8ff}
+  .lane.harness .box{border-left:3px solid #ffa657}
+  .lane.human .box{border-left:3px solid #f778ba}
+  .vsep{grid-column:2;color:var(--muted);font-family:var(--mono);font-size:13px;padding-left:4px}
+  .loopnote{grid-column:1 / -1;text-align:center;font-family:var(--mono);font-size:11.5px;
+    color:var(--accent);border-top:1px dashed var(--line);margin-top:6px;padding-top:8px}
+  /* lifecycle skill-map */
+  .lmap{display:flex;flex-direction:column;margin:4px 0}
+  .phase{display:grid;grid-template-columns:150px 1fr;gap:14px;padding:11px 0;border-bottom:1px solid var(--line)}
+  .phase:last-child{border-bottom:0}
+  .phase .pl{font-family:var(--mono);font-size:12.5px;color:var(--ink);font-weight:600;display:flex;flex-direction:column;gap:2px}
+  .phase .pl small{color:var(--muted);font-weight:400;font-size:10.5px}
+  .phase.impl{background:rgba(126,231,135,.05);border-radius:8px}
+  .phase.impl .pl{color:var(--accent)}
+  .chips{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+  .sk{font-family:var(--mono);font-size:11.5px;padding:3px 9px;border-radius:7px;border:1px solid var(--line);
+    background:var(--chip);color:#cdd9e5;white-space:nowrap}
+  .sk.core{border-color:#33506a;color:#a9c7e6}
+  .sk.enh{border-color:#4a3d6b;color:#cbb6ff}
+  .sk.hook{border-color:rgba(255,166,87,.45);color:var(--warn);background:transparent}
+  .sk.opt{opacity:.7;border-style:dashed}
+  .sk.here{border-color:var(--accent);color:#c8ffd4;background:rgba(126,231,135,.10);font-weight:700}
+  .sk .r{opacity:.6}
+  .svgwrap{overflow-x:auto;background:var(--code);border:1px solid var(--line);border-radius:12px;padding:12px}
+  .svgwrap svg{display:block;margin:0 auto;min-width:600px}
+</style>
+
+<section id="flow">
+  <h2><span class="n">§A</span> The flow — where <span class="mono" style="color:var(--accent)">ccloop</span> takes over</h2>
+  <p class="lead">Two views: how ccloop plugs into the Spec Kit lifecycle, then what happens inside its workflow.</p>
+
+  <div class="legend">
+    <span><i class="dot d-core"></i>core spec-kit</span>
+    <span><i class="dot d-opus"></i>Opus (orchestrate/review)</span>
+    <span><i class="dot d-local"></i>local model (implement)</span>
+    <span><i class="dot d-judge"></i>cross-family judge</span>
+    <span><i class="dot d-harness"></i>harness (bash, fail-closed)</span>
+    <span><i class="dot d-human"></i>human</span>
+  </div>
+
+  <h3>1 · The lifecycle skill-map — every skill &amp; where it runs</h3>
+  <p class="lead" style="font-size:13.5px"><span class="sk core" style="padding:1px 7px">core</span> spec-kit commands · <span class="sk enh" style="padding:1px 7px">enh</span> installed enhancement extensions (superspec / aide) · <span class="sk hook" style="padding:1px 7px">hook</span> auto-fires from <code>extensions.yml</code> · <span class="sk opt" style="padding:1px 7px">opt</span> optional · <span class="sk here" style="padding:1px 7px">ccloop</span> this extension.</p>
+  <div class="card">
+    <div class="lmap">
+      <div class="phase"><div class="pl">Init<small>project setup</small></div>
+        <div class="chips"><span class="sk hook">after_init → speckit.brownfield.scan</span></div></div>
+      <div class="phase"><div class="pl">Constitution<small>principles</small></div>
+        <div class="chips"><span class="sk core">/speckit.constitution</span></div></div>
+      <div class="phase"><div class="pl">Specify<small>spec.md</small></div>
+        <div class="chips"><span class="sk core">/speckit.specify</span><span class="sk enh">/speckit.superspec.brainstorm<span class="r"> · refine edge cases</span></span><span class="sk hook">after_specify → agent-context.update</span></div></div>
+      <div class="phase"><div class="pl">Clarify<small>de-risk</small></div>
+        <div class="chips"><span class="sk core opt">/speckit.clarify</span></div></div>
+      <div class="phase"><div class="pl">Plan<small>plan.md</small></div>
+        <div class="chips"><span class="sk core">/speckit.plan</span><span class="sk hook">after_plan → agent-context.update</span></div></div>
+      <div class="phase"><div class="pl">Checklist<small>quality</small></div>
+        <div class="chips"><span class="sk core opt">/speckit.checklist</span></div></div>
+      <div class="phase"><div class="pl">Tasks<small>tasks.md 🔒</small></div>
+        <div class="chips"><span class="sk core">/speckit.tasks</span><span class="sk enh">/speckit.superspec.tasks</span><span class="sk hook">after_tasks → superspec.tasks</span><span class="sk here">＋ after_tasks → speckit.ccloop.run ▸ offer</span></div></div>
+      <div class="phase"><div class="pl">Analyze<small>consistency</small></div>
+        <div class="chips"><span class="sk core opt">/speckit.analyze</span></div></div>
+      <div class="phase impl"><div class="pl">Implement<small>◀ ccloop owns this</small></div>
+        <div class="chips"><span class="sk here">speckit.ccloop.run ▸ workflow loop</span><span class="sk core opt" style="text-decoration:line-through">/speckit.implement</span><span class="sk enh">alt: /speckit.superspec.execute</span><span class="sk hook">before_implement → superspec.execute</span><span class="sk here">.status · .reflect · .promote · .doctor</span></div></div>
+      <div class="phase"><div class="pl">Converge<small>assess + review</small></div>
+        <div class="chips"><span class="sk core">/speckit.converge</span><span class="sk enh">/speckit.superspec.review</span><span class="sk hook">after_implement → superspec.review</span></div></div>
+    </div>
+    <p class="hookline" style="margin-top:12px">🔒 <code>tasks.md</code> is frozen at Tasks (G9) and read as the ccloop work queue. <span style="color:var(--muted)">aide (<code>speckit.aide.create-vision/roadmap/queue/item</code>) is an alternative greenfield planning front-end that can feed Tasks — not on the core linear path.</span></p>
+  </div>
+
+  <h3>2 · The ccloop workflow — flowchart (<code>specify workflow run ccloop</code>)</h3>
+  <div class="card">
+    <div class="svgwrap">
+      <svg viewBox="0 0 820 1050" width="100%" role="img" aria-label="ccloop workflow flowchart">
+        <defs>
+          <marker id="ahg" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="#9aa7b4"/></marker>
+          <marker id="ahr" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="#ff7b72"/></marker>
+          <marker id="aha" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto"><path d="M0,0 L6,3 L0,6 Z" fill="#7ee787"/></marker>
+        </defs>
+
+        <!-- loop container -->
+        <rect x="188" y="272" width="424" height="410" rx="14" fill="rgba(126,231,135,.04)" stroke="#7ee787" stroke-dasharray="5 4" stroke-width="1.2"/>
+        <text x="204" y="266" font-family="ui-monospace,monospace" font-size="11" fill="#7ee787">do-while · open&gt;0 · max_iterations 20 (+ guards.sh durable cap)</text>
+
+        <!-- vertical connectors (x=400) -->
+        <line x1="400" y1="76"  x2="400" y2="100" stroke="#9aa7b4" stroke-width="1.5" marker-end="url(#ahg)"/>
+        <line x1="400" y1="156" x2="400" y2="180" stroke="#9aa7b4" stroke-width="1.5" marker-end="url(#ahg)"/>
+        <line x1="400" y1="236" x2="400" y2="288" stroke="#9aa7b4" stroke-width="1.5" marker-end="url(#ahg)"/>
+        <line x1="400" y1="344" x2="400" y2="368" stroke="#9aa7b4" stroke-width="1.5" marker-end="url(#ahg)"/>
+        <line x1="400" y1="424" x2="400" y2="448" stroke="#9aa7b4" stroke-width="1.5" marker-end="url(#ahg)"/>
+        <line x1="400" y1="504" x2="400" y2="528" stroke="#9aa7b4" stroke-width="1.5" marker-end="url(#ahg)"/>
+        <line x1="400" y1="584" x2="400" y2="608" stroke="#9aa7b4" stroke-width="1.5" marker-end="url(#ahg)"/>
+        <line x1="400" y1="664" x2="400" y2="720" stroke="#9aa7b4" stroke-width="1.5" marker-end="url(#ahg)"/>
+        <line x1="400" y1="776" x2="400" y2="800" stroke="#9aa7b4" stroke-width="1.5" marker-end="url(#ahg)"/>
+        <line x1="400" y1="856" x2="400" y2="880" stroke="#9aa7b4" stroke-width="1.5" marker-end="url(#ahg)"/>
+        <line x1="400" y1="936" x2="400" y2="960" stroke="#9aa7b4" stroke-width="1.5" marker-end="url(#ahg)"/>
+
+        <!-- loop-back: record → loop_status (open>0) -->
+        <path d="M250,636 C150,636 150,316 250,316" fill="none" stroke="#7ee787" stroke-width="1.6" marker-end="url(#aha)"/>
+        <text x="92" y="472" font-family="ui-monospace,monospace" font-size="10.5" fill="#7ee787">↺ open&gt;0</text>
+        <text x="92" y="486" font-family="ui-monospace,monospace" font-size="10.5" fill="#7ee787">next task</text>
+        <text x="410" y="700" font-family="ui-monospace,monospace" font-size="10.5" fill="#9aa7b4">open==0 ↓</text>
+
+        <!-- fail retry: judge → dispatch -->
+        <path d="M550,476 C626,476 626,396 552,396" fill="none" stroke="#ff7b72" stroke-width="1.3" stroke-dasharray="4 3" marker-end="url(#ahr)"/>
+        <text x="562" y="452" font-family="ui-monospace,monospace" font-size="10.5" fill="#ff7b72">fail ↺ retry</text>
+        <text x="562" y="500" font-family="ui-monospace,monospace" font-size="10.5" fill="#ffa657">uncertain</text>
+        <text x="562" y="514" font-family="ui-monospace,monospace" font-size="10.5" fill="#ffa657">→ debt.md</text>
+        <text x="562" y="832" font-family="ui-monospace,monospace" font-size="10.5" fill="#ff7b72">reject → abort</text>
+
+        <!-- nodes: rect + label + sub(role·action). stroke = role color -->
+        <g font-family="ui-monospace,monospace" text-anchor="middle">
+          <rect x="250" y="20"  width="300" height="56" rx="10" fill="#161b22" stroke="#79c0ff" stroke-width="1.5"/>
+          <text x="400" y="43"  font-size="14" fill="#e6edf3" font-weight="700">arm</text>
+          <text x="400" y="61"  font-size="10.5" fill="#9aa7b4">Opus · resolve feature, preflight</text>
+
+          <rect x="250" y="100" width="300" height="56" rx="10" fill="#161b22" stroke="#ffa657" stroke-width="1.5"/>
+          <text x="400" y="123" font-size="14" fill="#e6edf3" font-weight="700">freeze</text>
+          <text x="400" y="141" font-size="10.5" fill="#9aa7b4">harness · hash-pin protected spine</text>
+
+          <rect x="250" y="180" width="300" height="56" rx="10" fill="#161b22" stroke="#79c0ff" stroke-width="1.5"/>
+          <text x="400" y="203" font-size="14" fill="#e6edf3" font-weight="700">derive</text>
+          <text x="400" y="221" font-size="10.5" fill="#9aa7b4">Opus · tasks+plan → DoD contract</text>
+
+          <rect x="250" y="288" width="300" height="56" rx="10" fill="#161b22" stroke="#ffa657" stroke-width="1.5"/>
+          <text x="400" y="311" font-size="14" fill="#e6edf3" font-weight="700">loop_status</text>
+          <text x="400" y="329" font-size="10.5" fill="#9aa7b4">harness · emit JSON {open,…}</text>
+
+          <rect x="250" y="368" width="300" height="56" rx="10" fill="#161b22" stroke="#7ee787" stroke-width="1.5"/>
+          <text x="400" y="391" font-size="14" fill="#e6edf3" font-weight="700">dispatch</text>
+          <text x="400" y="409" font-size="10.5" fill="#9aa7b4">local model · implement 1 task · detach+poll</text>
+
+          <rect x="250" y="448" width="300" height="56" rx="10" fill="#161b22" stroke="#d2a8ff" stroke-width="1.5"/>
+          <text x="400" y="471" font-size="14" fill="#e6edf3" font-weight="700">judge</text>
+          <text x="400" y="489" font-size="10.5" fill="#9aa7b4">cross-family · sandbox tests → verdict</text>
+
+          <rect x="250" y="528" width="300" height="56" rx="10" fill="#161b22" stroke="#ffa657" stroke-width="1.5"/>
+          <text x="400" y="551" font-size="14" fill="#e6edf3" font-weight="700">gate.sh</text>
+          <text x="400" y="569" font-size="10.5" fill="#9aa7b4">harness · verify+tests · fail-closed</text>
+
+          <rect x="250" y="608" width="300" height="56" rx="10" fill="#161b22" stroke="#ffa657" stroke-width="1.5"/>
+          <text x="400" y="631" font-size="14" fill="#e6edf3" font-weight="700">record</text>
+          <text x="400" y="649" font-size="10.5" fill="#9aa7b4">harness · progress-lint · set status by ID</text>
+
+          <rect x="250" y="720" width="300" height="56" rx="10" fill="#161b22" stroke="#ffa657" stroke-width="1.5"/>
+          <text x="400" y="743" font-size="14" fill="#e6edf3" font-weight="700">assert_closed</text>
+          <text x="400" y="761" font-size="10.5" fill="#9aa7b4">harness · FAIL if open&gt;0 (no false success)</text>
+
+          <rect x="250" y="800" width="300" height="56" rx="10" fill="#161b22" stroke="#f778ba" stroke-width="1.5"/>
+          <text x="400" y="823" font-size="14" fill="#e6edf3" font-weight="700">done gate</text>
+          <text x="400" y="841" font-size="10.5" fill="#9aa7b4">human · shows debt.md · approve/reject</text>
+
+          <rect x="250" y="880" width="300" height="56" rx="10" fill="#161b22" stroke="#f778ba" stroke-width="1.5"/>
+          <text x="400" y="903" font-size="14" fill="#e6edf3" font-weight="700">signoff</text>
+          <text x="400" y="921" font-size="10.5" fill="#9aa7b4">human · record sign-off row (G3)</text>
+
+          <rect x="250" y="960" width="300" height="56" rx="10" fill="#161b22" stroke="#79c0ff" stroke-width="1.5"/>
+          <text x="400" y="983" font-size="14" fill="#e6edf3" font-weight="700">reflect</text>
+          <text x="400" y="1001" font-size="10.5" fill="#9aa7b4">Opus · → quarantined candidates (offline)</text>
+        </g>
+      </svg>
+    </div>
+    <p class="lead" style="font-size:13.5px;margin-top:12px">Opus is billed only at <b>arm / derive / reflect</b> (thinking) plus review; the high-volume <b>dispatch</b> runs free on local hardware; the <b>judge</b> is a different model family; every <b>harness</b> step is bash that fails closed (non-zero exit HALTS the run). One human touchpoint: the done-gate.</p>
+</section>
+
+<section id="dec">
+  <h2><span class="n">§1</span> Locked decisions</h2>
+  <div class="card">
+    <ol style="margin:0">
+      <li><strong>Pure extension</strong> — drop the standalone Claude Code plugin + marketplace form.</li>
+      <li><strong>Own the implement phase</strong> — consume <code>tasks.md</code>, execute each task on local models, judge-gate, Opus-review.</li>
+      <li><strong>Pluggable agent-CLI adapters</strong> (ralph-style); <b>OpenCode + local models</b> default; cross-family invariant maps onto configured adapters.</li>
+      <li><strong>Progress + feedback layer</strong> from aide (per-task DoD, monotonic progress, trade-offs log); skip vision/roadmap — spec.md/plan.md cover that.</li>
+      <li><strong>Approach C (hybrid)</strong> — <code>tasks.md</code> stays frozen/PROTECTED; run-state lives in a separate ID-keyed ledger. Resolves the ralph tension where the loop would mutate <code>tasks.md</code>.</li>
+    </ol>
+  </div>
+</section>
+
+<section id="extract">
+  <h2><span class="n">§2</span> What we steal from each extension</h2>
+  <table>
+    <tr><th>Source</th><th>Extracted</th></tr>
+    <tr><td><b>spec-kit-ralph</b></td><td><code>get_agent_cli_kind()</code> normalizer + <code>invoke_&lt;kind&gt;</code> dispatcher; per-CLI arg table; two-axis abstraction (transport × prompt-delivery, inline-the-contract fallback); <code>*_EXPLICIT</code> config precedence; two-tier failure taxonomy; completion-token hardening; fire-and-forget launcher.</td></tr>
+    <tr><td><b>spec-kit-loop</b></td><td>Role-scoped status ladder; done-criteria contract table w/ "how the checker verifies"; three-valued verdict <code>pass|fail|uncertain→debt</code>; comprehension-debt + human sign-off; budgeted/sliced <code>status</code> + deterministic next-action.</td></tr>
+    <tr><td><b>aide</b></td><td>Per-item Testing-Prereqs / Expected-Outcomes / Validation block (DoD written <em>before</em> implementation); monotonic <code>progress.md</code>; in-item Decisions &amp; Trade-offs log; file-existence-as-truth + inconsistency flagging.</td></tr>
+    <tr><td colspan="2" style="color:var(--warn)"><b>Do NOT copy:</b> all three enforce guardrails in <em>prose only</em>. We own the runtime — every borrowed rule is re-enforced in <code>scripts/bash/</code> with a test probe. aide's prompt-self-editing routes through <code>candidates → promote-check → human PR</code> (G3/G4), never applied directly.</td></tr>
+  </table>
+</section>
+
+<section id="pack">
+  <h2><span class="n">§4</span> Packaging — bundle = manifest-of-references</h2>
+  <div class="callout warn">
+    <b>Fable correction (B3):</b> a 0.12.4 bundle is <b>not a self-contained zip</b>. <code>bundle install</code> reads only <code>bundle.yml</code> and resolves each component <b>by id</b> from core_pack / a catalog — the zip's own files are never extracted.
+  </div>
+  <div class="callout good"><b>Install (LOCKED) — one command, straight from the repo URL:</b></div>
+  <pre><span class="k">specify extension add</span> ccloop <span class="k">--from</span> <span class="s">&lt;repo-url&gt;</span>     <span class="c"># --from is a real 0.12.4 flag ✓</span></pre>
+  <p>The extension <b>ships its own <code>workflow.yml</code></b> (<code>.specify/extensions/ccloop/workflow/workflow.yml</code>). On the first <code>/speckit.ccloop.run</code>, the command <b>self-registers</b> it if absent — <code>specify workflow add …/workflow.yml</code> (accepts ID/URL/path ✓) — then <code>specify workflow run ccloop</code>. <b>One install command; workflow registration is automatic + idempotent.</b> A <code>bundle.yml</code> still versions the pair and can back a published catalog later. Component layout:</p>
+  <pre><span class="c"># The extension (commands + config + bash gates)</span>
+.specify/extensions/ccloop/
+  extension.yml            <span class="c"># schema 1.0; requires speckit &gt;=0.12.4; opt-in hooks</span>
+  commands/{run,status,reflect,promote,doctor}.md   <span class="c"># speckit.ccloop.*</span>
+  scripts/bash/
+    lib/common.sh          <span class="c"># PROTECTED_PAT, family_of, assert_cross_family, ledger</span>
+    adapters.sh            <span class="c"># NEW — get_agent_cli_kind + invoke_&lt;kind&gt; (ralph)</span>
+    contract-derive.sh     <span class="c"># NEW — tasks.md + plan.md → per-task DoD (aide+loop)</span>
+    progress-status.sh     <span class="c"># NEW — emits JSON for the do-while condition</span>
+    progress-lint.sh       <span class="c"># NEW — monotonic progress, fail-closed (G4-style)</span>
+    done-gate.sh           <span class="c"># NEW — human sign-off closure check (loop)</span>
+    dispatch judge preflight build-context sandbox-run state ...
+    harness/{freeze,gate,guards}.sh
+  templates/ · references/{rubric,lessons,architecture}.md
+
+<span class="c"># The workflow (loop orchestration, installed to its canonical path)</span>
+.specify/workflows/ccloop/workflow.yml</pre>
+</section>
+
+<section id="data">
+  <h2><span class="n">§5</span> Data plane moves into the feature dir</h2>
+  <p class="lead">Run-state lives under spec-kit's own feature dir (mirrors spec-kit-loop's <code>specs/&lt;feature&gt;/loop/</code>) — not a separate <code>.cc-local-loop/</code>.</p>
+  <pre>specs/&lt;NNN-feature&gt;/
+  spec.md  plan.md  <span class="t">tasks.md</span>          <span class="c"># FROZEN — matched by PROTECTED_PAT, never written by the loop</span>
+  ccloop/
+    contract.md   <span class="c"># per-task DoD: | TaskID | Criterion | How judge verifies | Status |</span>
+    progress.md   <span class="c"># MUTABLE state machine, keyed by task ID (aide-monotonic)</span>
+    iterations.md verdicts.md debt.md    <span class="c"># append-only records + sign-off log</span>
+    ledger/events.jsonl                  <span class="c"># observability — NEVER injected (G1)</span>
+    frozen.json  RUN_ID  ACTIVE  loop_state.json   <span class="c"># freeze pin + arming + schema-pinned (G2)</span></pre>
+  <div class="callout good"><b>The crux of Approach C:</b> the loop never writes <code>tasks.md</code> — completion lives in <code>progress.md</code> keyed by task ID. <code>PROTECTED_PAT</code> and every G-invariant survive intact.</div>
+</section>
+
+<section id="wf">
+  <h2><span class="n">§6</span> The loop as a spec-kit workflow</h2>
+  <p class="lead">Declarative YAML orchestration; every safety gate is a bash <code>shell</code> step whose non-zero exit <b>halts the run</b>. Corrected against the engine source (do-while, <code>.output.data.</code> paths, literal cap, fail-closed assert, detach+poll).</p>
+  <pre><span class="k">steps</span>:
+  - id: <span class="t">arm</span>            <span class="c"># resolve feature, arm loop, cross-family preflight</span>
+    type: shell
+    <span class="k">output_format</span>: json                 <span class="c"># so steps.arm.output.data.feature resolves</span>
+    run: "bash .../state.sh arm --feature '{{ inputs.feature }}' --json"
+  - id: <span class="t">freeze</span>   {type: shell, run: ".../harness/freeze.sh"}      <span class="c"># hash-pin spine, fail-closed</span>
+  - id: <span class="t">derive</span>   {type: shell, run: ".../contract-derive.sh"}      <span class="c"># tasks.md+plan.md → contract</span>
+  - id: <span class="t">loop</span>
+    type: <span class="k">do-while</span>     <span class="c"># NOT while: a while checks its condition BEFORE iter 1,</span>
+                     <span class="c"># when loop_status has never run → falsy → body never runs (B1)</span>
+    condition: "{{ steps.loop_status.<span class="t">output.data</span>.open &gt; 0 }}"   <span class="c"># note .output.data (B2)</span>
+    max_iterations: <span class="t">20</span>   <span class="c"># LITERAL int only (B5); guards.sh owns the durable cap</span>
+    steps:
+      - id: loop_status  {type: shell, output_format: json, run: ".../progress-status.sh --json"}
+      - id: dispatch     <span class="c"># detach-start + poll — a direct dispatch WILL exceed the 300s cap (R1)</span>
+        {type: shell, run: ".../dispatch.sh next --detach --no-op-if-closed"}
+      - id: judge        {type: shell, run: ".../judge.sh next --detach"}   <span class="c"># cross-family + sandbox</span>
+      - id: gate         {type: shell, run: ".../harness/gate.sh"}          <span class="c"># hash-verify + tests</span>
+      - id: record       {type: shell, run: ".../progress-lint.sh record"} <span class="c"># monotonic status</span>
+  - id: <span class="t">assert_closed</span>  <span class="c"># FAIL-CLOSED: cap-exhaustion must not reach the gate as "success" (B4)</span>
+    {type: shell, run: ".../progress-status.sh --assert-closed"}
+  - id: <span class="t">human_done_gate</span>          <span class="c"># the ONE human gate; PAUSES if non-TTY → resume to sign off</span>
+    type: <span class="k">gate</span>
+    message: "All tasks judge-pass. Review debt below, then approve to close."
+    show_file: "specs/{{ steps.arm.output.data.feature }}/ccloop/debt.md"
+    options: [approve, reject]
+    on_reject: abort
+  - id: <span class="t">signoff</span>  {type: shell, run: ".../done-gate.sh signoff"}   <span class="c"># records human sign-off (G3)</span>
+  - id: <span class="t">reflect</span>  {type: shell, run: ".../reflect.sh run"}          <span class="c"># offline, quarantined candidates</span></pre>
+  <div class="callout">
+    <b>Engine facts (Fable-verified):</b> fail-closed is native (non-zero → step FAILED → run FAILED; <code>continue_on_error</code> is opt-in). The engine truly re-iterates the body and re-evaluates the condition against a re-run <code>loop_status</code>. <b>Resume re-runs the whole do-while with a fresh cap</b> → <code>guards.sh</code> owns the durable bound; <code>progress.md</code> idempotency makes re-runs safe. The <b>300s</b> cap also hits <code>judge</code> and sandboxed tests → detach+poll everywhere heavy.
+  </div>
+</section>
+
+<section id="ladder">
+  <h2><span class="n">§7</span> Status ladder &amp; adapters</h2>
+  <p>Per task ID in <code>progress.md</code> (schema-pinned in <code>state.sh</code>, G2; role-scoped):</p>
+  <div class="flow ladder">
+    <span class="step">pending</span><span class="arw">→</span>
+    <span class="step">dispatched</span><span class="arw">→</span>
+    <span class="step">implemented</span><span class="arw">→</span>
+    <span class="step">judge-pass</span><span class="arw">|</span>
+    <span class="step">judge-fail</span><span class="arw">|</span>
+    <span class="step">judge-uncertain →debt</span><span class="arw">→</span>
+    <span class="step human">human-signed</span>
+  </div>
+  <p class="lead">Implementer may only reach <code>implemented</code>; the cross-family judge owns the <code>judge-*</code> verdicts (<code>uncertain</code> opens a debt row, never vanishes); the human done-gate owns closure.</p>
+  <h3>Pluggable adapters</h3>
+  <p class="lead"><code>get_agent_cli_kind()</code> normalizer (bash-3.2-safe) → <code>opencode|claude|codex|copilot|unsupported</code>; per-CLI invocation shapes; inline the iterate contract for print-mode CLIs. Cross-family invariant holds — <code>assert_cross_family(implementer, judge)</code>; Opus is never a local implementer. Config precedence: defaults → <code>ccloop-config.yml</code> → <code>.local</code> → <code>SPECKIT_CCLOOP_*</code> env → args.</p>
+</section>
+
+<section id="guard">
+  <h2><span class="n">§10</span> Guardrails — G1–G8 preserved, + G9</h2>
+  <div class="card">
+    <p style="margin:0 0 8px"><span class="g">G1</span>one injected memory (lessons.md only; <code>build-context</code> denylist gains <code>specs/*/ccloop/**</code>) &nbsp; <span class="g">G2</span>schema-pinned state &nbsp; <span class="g">G3</span>cadence proposes, humans promote + sign off &nbsp; <span class="g">G4</span>mechanical lessons cap, fail-closed &nbsp; <span class="g">G5</span>additive only &nbsp; <span class="g">G6</span>frozen calibration is the arbiter &nbsp; <span class="g">G7</span>retention split &nbsp; <span class="g">G8</span>deterministic telemetry authorship</p>
+    <p style="margin:8px 0 0"><span class="g" style="color:var(--warn);border-color:rgba(255,166,87,.4)">G9</span><b>tasks.md immutability</b> — the loop never writes <code>tasks.md</code>; <code>freeze</code>/<code>gate</code> hash-verify it and <code>progress-lint</code> keeps completion in <code>progress.md</code>. This is the guard that makes ralph's pattern safe here.</p>
+  </div>
+</section>
+
+<section id="valid">
+  <h2><span class="n">§13</span> Validation outcomes (Fable vs 0.12.4 source)</h2>
+  <p class="lead"><b>Overall: viable-with-fixes.</b> Core safety thesis verified — non-zero shell exit fails the run, the engine genuinely iterates + re-evaluates, the human gate aborts on reject, nothing writes <code>tasks.md</code>.</p>
+  <table>
+    <tr><th>Risk</th><th>Verdict</th><th>Resolution</th></tr>
+    <tr><td>R1 · 300s shell timeout</td><td><span class="tag conf">CONFIRMED</span></td><td>Detach-start + bounded poll for every heavy step (dispatch, judge, tests).</td></tr>
+    <tr><td>R2 · while-condition over JSON</td><td><span class="tag conf">CONFIRMED</span></td><td><code>do-while</code>; path <code>steps.&lt;id&gt;.output.data.&lt;field&gt;</code>; <code>arm</code> emits JSON.</td></tr>
+    <tr><td>R3 · command vs shell dispatch</td><td><span class="tag ref">shell ✓</span></td><td><code>command</code> steps don't capture streamed stdout → <code>shell</code>+detach chosen.</td></tr>
+    <tr><td>R4 · one bundle carries payloads</td><td><span class="tag ref">REFUTED</span></td><td>Bundle = manifest-of-references; install via <code>extension add</code> + <code>workflow add</code> paths.</td></tr>
+    <tr><td>R5 · version floor</td><td><span class="tag unk">→ pin 0.12.4</span></td><td>Bundle <code>requires</code> is enforced; workflow <code>requires</code> is advisory.</td></tr>
+  </table>
+  <p class="lead"><b>Blockers B1–B5 all resolved</b> in §4/§6: <code>while</code>→<code>do-while</code> · <code>.output.data.</code> paths + <code>arm</code> json · bundle-payload myth → path install · post-loop <code>assert_closed</code> · literal <code>max_iterations</code>.</p>
+</section>
+
+<!-- ============ QUESTIONS ============ -->
+<section id="q">
+  <h2><span class="n">§14</span> Decisions — locked ✓</h2>
+  <p class="lead">Answered 2026-07-06 and folded into §4 / §6 / §A. Shown pre-selected below for the record.</p>
+
+  <div class="q" data-q="Extension id">
+    <h3>Q1 · Extension id</h3>
+    <p class="why">Sets the command namespace <code>speckit.&lt;id&gt;.*</code> and install paths.</p>
+    <label class="opt sel"><input type="radio" name="q1" value="ccloop — commands speckit.ccloop.*" checked><span><span class="lab">ccloop</span><span class="rec">clean</span><span class="d">Short, single token → <code>speckit.ccloop.run</code>.</span></span></label>
+    <label class="opt"><input type="radio" name="q1" value="local-loop — commands speckit.local-loop.*"><span><span class="lab">local-loop</span><span class="d">Preserves the cc-local-loop identity → <code>speckit.local-loop.run</code>.</span></span></label>
+    <label class="opt"><input type="radio" name="q1" value="OTHER"><span><span class="lab">Other</span><input type="text" data-other="q1" placeholder="type an id…"></span></label>
+  </div>
+
+  <div class="q" data-q="Distribution">
+    <h3>Q2 · Distribution path</h3>
+    <p class="why">How people install it (bundles carry no payload — install is by id/path).</p>
+    <label class="opt"><input type="radio" name="q2" value="Ship the git repo + documented two-command local-path install first (extension add <path> + workflow add <path>)"><span><span class="lab">Repo + local-path install</span><span class="rec">recommended</span><span class="d">Ship the repo; <code>extension add ./…</code> + <code>workflow add ./…</code>. Simplest, works today.</span></span></label>
+    <label class="opt"><input type="radio" name="q2" value="Publish file://-or-HTTPS extension + workflow catalogs for one-command install"><span><span class="lab">Publish catalogs</span><span class="d">Stand up <code>file://</code>/HTTPS catalogs for one-command install. More infra.</span></span></label>
+    <label class="opt"><input type="radio" name="q2" value="Both — local-path now, publish catalogs later"><span><span class="lab">Both, phased</span><span class="d">Local-path now; catalogs once it stabilizes.</span></span></label>
+    <label class="opt sel"><input type="radio" name="q2" value="OTHER" checked><span><span class="lab">Other</span><input type="text" data-other="q2" value="repo! specify extension add ccloop --from &lt;repo-url&gt;" placeholder="…"></span></label>
+  </div>
+
+  <div class="q" data-q="Drop the Claude Code plugin form">
+    <h3>Q3 · Remove the <code>.claude-plugin/</code> + marketplace form?</h3>
+    <p class="why">Decision 1 was "pure extension." Confirm we delete the standalone plugin/marketplace.</p>
+    <label class="opt sel"><input type="radio" name="q3" value="Yes — remove .claude-plugin/ and marketplace; repo becomes the bundle source" checked><span><span class="lab">Yes, remove it</span><span class="rec">per decision 1</span><span class="d">Repo becomes the bundle source + catalog entry. Clean single identity.</span></span></label>
+    <label class="opt"><input type="radio" name="q3" value="Keep both forms during a transition period"><span><span class="lab">Keep both a while</span><span class="d">Dual-maintain plugin + extension through a transition, then drop.</span></span></label>
+    <label class="opt"><input type="radio" name="q3" value="OTHER"><span><span class="lab">Other</span><input type="text" data-other="q3" placeholder="…"></span></label>
+  </div>
+
+  <div class="q" data-q="Heavy-work placement">
+    <h3>Q4 · Where does heavy work run (dispatch / judge / tests)?</h3>
+    <p class="why">The 300s shell cap forces a choice about the long-running steps.</p>
+    <label class="opt sel"><input type="radio" name="q4" value="Detach+poll INSIDE the workflow (one resumable artifact)" checked><span><span class="lab">Detach + poll inside the workflow</span><span class="rec">recommended</span><span class="d">Heavy steps start detached; short poll steps stay under 300s. One resumable artifact via <code>workflow resume</code>.</span></span></label>
+    <label class="opt"><input type="radio" name="q4" value="Run heavy work OUTSIDE the engine; workflow only orchestrates freeze/gate/record"><span><span class="lab">Outside the engine</span><span class="d">The workflow only orchestrates freeze/gate/record; dispatch+judge+tests run as their own process. Simpler steps, two moving parts.</span></span></label>
+    <label class="opt"><input type="radio" name="q4" value="OTHER"><span><span class="lab">Other</span><input type="text" data-other="q4" placeholder="…"></span></label>
+  </div>
+
+  <div class="answers">
+    <h3>▸ Your answers (copy &amp; paste back to me)</h3>
+    <div id="out">Pick options above…</div>
+    <button class="btn" id="copy">Copy answers</button>
+    <button class="btn sec" id="reset">Reset</button>
+  </div>
+</section>
+
+<footer>
+  Draft — not committed as approved. Full markdown: <code>docs/superpowers/specs/2026-07-06-ccloop-speckit-extension-design.md</code>.
+  Next step after your answers: fold in → spec self-review → <b>writing-plans</b> for the implementation plan.
+</footer>
+
+</div>
+
+<script>
+  const labels = {q1:"Q1 Extension id", q2:"Q2 Distribution", q3:"Q3 Remove plugin form", q4:"Q4 Heavy-work placement"};
+  function build(){
+    const parts = [];
+    ["q1","q2","q3","q4"].forEach(n=>{
+      const sel = document.querySelector('input[name="'+n+'"]:checked');
+      let val = "(unanswered)";
+      if(sel){
+        if(sel.value==="OTHER"){
+          const t = document.querySelector('[data-other="'+n+'"]');
+          val = t && t.value.trim() ? "Other: "+t.value.trim() : "Other: (blank)";
+        } else val = sel.value;
+      }
+      parts.push(labels[n]+": "+val);
+    });
+    document.getElementById('out').textContent = parts.join("\n");
+  }
+  document.querySelectorAll('.opt').forEach(o=>{
+    o.addEventListener('click',()=>{
+      const r=o.querySelector('input[type=radio]'); if(r){r.checked=true;}
+      o.closest('.q').querySelectorAll('.opt').forEach(x=>x.classList.remove('sel'));
+      o.classList.add('sel'); build();
+    });
+  });
+  document.querySelectorAll('input[type=text]').forEach(t=>{
+    t.addEventListener('input',()=>{ const n=t.getAttribute('data-other');
+      const r=document.querySelector('input[name="'+n+'"][value="OTHER"]'); if(r)r.checked=true;
+      t.closest('.q').querySelectorAll('.opt').forEach(x=>x.classList.remove('sel'));
+      t.closest('.opt').classList.add('sel'); build(); });
+    t.addEventListener('click',e=>e.stopPropagation());
+  });
+  document.getElementById('copy').addEventListener('click',()=>{
+    const txt=document.getElementById('out').textContent;
+    navigator.clipboard.writeText(txt).then(()=>{
+      const b=document.getElementById('copy'); b.textContent="Copied ✓"; setTimeout(()=>b.textContent="Copy answers",1400);
+    });
+  });
+  document.getElementById('reset').addEventListener('click',()=>{
+    document.querySelectorAll('input').forEach(i=>{if(i.type==='radio')i.checked=false; else i.value='';});
+    document.querySelectorAll('.opt').forEach(x=>x.classList.remove('sel')); build();
+  });
+  build();
+</script>
+</body>
+</html>

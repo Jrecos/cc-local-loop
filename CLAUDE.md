@@ -2,6 +2,14 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+> **v0.5.0 repackaging note:** `cc-local-loop` is now a **GitHub Spec Kit 0.12.4 extension** (`ccloop`), not a standalone
+> Claude Code plugin. The canonical scripts live under `.specify/extensions/ccloop/scripts/bash/` (paths below that say
+> `scripts/…` refer to that location); the loop is a spec-kit **workflow** (`.specify/extensions/ccloop/workflow/workflow.yml`);
+> the data plane is `specs/<feature>/ccloop/` (fallback `.cc-local-loop/` when no feature is armed). New guardrail **G9 —
+> `tasks.md` immutability**. The regression net (`tests/run-tests.sh`) now runs against the extension. See
+> `specs/001-ccloop-extension/` and `docs/superpowers/specs/2026-07-06-ccloop-speckit-extension-design.md`. Sections below
+> describing the "plugin" form are historical.
+
 ## What this repo is
 
 `cc-local-loop` is a **Claude Code plugin** (and its own marketplace) that packages an autonomous dev loop:
@@ -90,3 +98,8 @@ The plugin **verifies its cage before entering it.** The node-ai calls (`dispatc
 Claude Code runs natively, so git works normally (unlike the sandboxed Cowork environment, which couldn't manage `.git` on the mount). The repo **doubles as its own marketplace** (`.claude-plugin/marketplace.json`, `source: "./"`), so bumping a version means updating both `plugin.json` and `marketplace.json`. Development happens against `github.com/Jrecos/cc-local-loop`.
 
 - Review + iteration pattern the project uses: **implement → `bash tests/run-tests.sh` (gate) → adversarial review → fix → re-gate.** The expert review that shaped the current hardening is in `docs/REVIEW-v0.1.md`; the deep design + end-to-end walkthrough is `references/architecture.md`.
+
+<!-- SPECKIT START -->
+For additional context about technologies to be used, project structure,
+shell commands, and other important information, read the current plan
+<!-- SPECKIT END -->

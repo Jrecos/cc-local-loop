@@ -3,19 +3,23 @@ on: [push, pull_request]
 jobs:
   lint-test:
     runs-on: ubuntu-latest
+    env:
+      CX: .specify/extensions/ccloop
     steps:
       - uses: actions/checkout@v4
       - run: sudo apt-get update && sudo apt-get install -y jq shellcheck
       - name: JSON valid
         run: |
-          for f in .claude-plugin/plugin.json .claude-plugin/marketplace.json hooks/hooks.json evals/calibration/cases.json; do
+          for f in "$CX/evals/calibration/cases.json"; do
             jq -e . "$f" >/dev/null && echo "ok $f"
           done
+      - name: YAML present (extension + workflow manifests)
+        run: for f in "$CX/extension.yml" "$CX/bundle.yml" "$CX/workflow/workflow.yml"; do test -f "$f" && echo "ok $f" || exit 1; done
       - name: bash syntax
-        run: for s in scripts/*.sh scripts/harness/*.sh; do bash -n "$s" && echo "ok $s"; done
+        run: for s in "$CX"/scripts/bash/*.sh "$CX"/scripts/bash/harness/*.sh; do bash -n "$s" && echo "ok $s"; done
       - name: lessons.md cap + provenance (G4)
-        run: bash scripts/lessons-lint.sh
+        run: bash "$CX/scripts/bash/lessons-lint.sh"
       - name: shellcheck
-        run: shellcheck -S warning scripts/*.sh scripts/harness/*.sh || true
+        run: shellcheck -S warning "$CX"/scripts/bash/*.sh "$CX"/scripts/bash/harness/*.sh || true
       - name: regression net
         run: bash tests/run-tests.sh

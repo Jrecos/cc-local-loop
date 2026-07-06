@@ -2,6 +2,18 @@
 
 All notable changes to `cc-local-loop` are documented here. Format: [Keep a Changelog](https://keepachangelog.com); versioning: [SemVer](https://semver.org).
 
+## [0.5.0] — 2026-07-06
+### Changed — repackaged as a spec-kit 0.12.4 extension (`ccloop`)
+`cc-local-loop` is now a **GitHub Spec Kit extension**, not a standalone Claude Code plugin. The implement loop is a native
+spec-kit **workflow** (`do-while` over `tasks.md`), and every safety gate is a bash `shell` step that fails closed.
+- **Install** via `specify extension add ccloop --from <repo-url>`; `speckit.ccloop.run` self-registers the bundled workflow.
+- **Data plane** moved from `.cc-local-loop/` to `specs/<feature>/ccloop/` (feature-scoped; `.cc-local-loop` kept as the no-feature fallback).
+- **New guardrail G9 — `tasks.md` immutability**: the loop never writes `tasks.md`; completion lives in `progress.md` keyed by task ID.
+- **New scripts**: `adapters.sh` (pluggable agent-CLI dispatch, die-guarded), `contract-derive.sh`, `progress-status.sh`, `progress-lint.sh`, `done-gate.sh`, `feature.sh`; `state.sh arm`.
+- **Removed** the plugin form: `.claude-plugin/{plugin,marketplace}.json`, `hooks/hooks.json`, and the duplicated top-level `scripts/`, `evals/`, `references/` (now canonical under `.specify/extensions/ccloop/`). CI, CODEOWNERS, and the promotion gate repoint accordingly. (`skills/`, `agents/` retained as legacy reference, superseded by the extension's `commands/`.)
+- Regression net grew **72 → 135 probes** (new groups 50–64). Live node-ai dispatch remains `die`-guarded — nothing fakes green.
+- Design + validation: `docs/superpowers/specs/2026-07-06-ccloop-speckit-extension-design.md`; plan: `docs/superpowers/plans/2026-07-06-ccloop-speckit-extension.md`; feature: `specs/001-ccloop-extension/`.
+
 ## [Unreleased]
 ### Fixed — sandbox-run.sh macOS portability
 - `sandbox-run.sh` no longer dies when a docker/podman **binary** is present but its **daemon is down**: it now probes

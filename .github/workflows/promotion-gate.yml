@@ -1,7 +1,7 @@
 name: promotion-gate
 on:
   pull_request:
-    paths: ['references/lessons.md', '.cc-local-loop/**']
+    paths: ['.specify/extensions/ccloop/references/lessons.md', 'specs/**/ccloop/promoted.jsonl']
 jobs:
   whitelist:
     runs-on: ubuntu-latest
@@ -10,4 +10,4 @@ jobs:
         with: { fetch-depth: 0 }
       - run: sudo apt-get update && sudo apt-get install -y jq
       - name: whitelist gate (no yardstick / harness edits)
-        run: bash scripts/promote-check.sh "origin/${{ github.base_ref }}"
+        run: bash .specify/extensions/ccloop/scripts/bash/promote-check.sh "origin/${{ github.base_ref }}"

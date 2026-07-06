@@ -1,0 +1,63 @@
+schema_version: "1.0"
+workflow:
+  id: ccloop
+  name: "Opus-orchestrated local-model implement loop"
+  version: "0.5.0"
+requires:                                  # a workflow's own `requires` is ADVISORY only —
+  speckit_version: ">=0.12.4"              # engine does NOT enforce it; the BUNDLE manifest does
+  integrations: { any: [claude, opencode, codex, copilot] }
+inputs:
+  feature: { type: string, default: "auto" }   # resolved via check-prerequisites.sh
+  # NOTE: no max_iterations input — the do-while cap must be a LITERAL int (templating is
+  # rejected at validation). guards.sh owns the durable/tunable bound.
+  # IMPORTANT: the engine runs each `shell` step in a FRESH subprocess with no env inheritance, so `arm`
+  # cannot export CCLOOP_FEATURE. Every downstream step threads it inline: CCLOOP_FEATURE='{{ steps.arm.output.data.feature }}'.
+steps:
+  - id: arm
+    type: shell
+    output_format: json                    # so steps.arm.output.data.feature resolves later (value: "specs/NNN-...")
+    run: "bash .specify/extensions/ccloop/scripts/bash/state.sh arm --feature '{{ inputs.feature }}' --json"
+  - id: freeze         # hash-pin protected spine — fail-closed
+    type: shell
+    run: "CCLOOP_FEATURE='{{ steps.arm.output.data.feature }}' bash .specify/extensions/ccloop/scripts/bash/harness/freeze.sh"
+  - id: derive         # tasks.md + plan.md → contract.md + seed progress.md (all pending)
+    type: shell
+    run: "CCLOOP_FEATURE='{{ steps.arm.output.data.feature }}' bash .specify/extensions/ccloop/scripts/bash/contract-derive.sh"
+  - id: loop
+    type: do-while     # NOT `while`: a `while` checks its condition BEFORE iter 1, when
+                       # loop_status has never run → falsy → body never runs (silent no-op).
+                       # do-while runs the body once, then re-checks after each iteration.
+    condition: "{{ steps.loop_status.output.data.open > 0 }}"   # note the .output.data path
+    max_iterations: 20   # LITERAL int only. Belt-and-suspenders vs guards.sh's durable cap.
+    steps:
+      - id: loop_status   # publishes {open, passed, uncertain}; re-runs each iteration
+        type: shell
+        output_format: json
+        run: "CCLOOP_FEATURE='{{ steps.arm.output.data.feature }}' bash .specify/extensions/ccloop/scripts/bash/progress-status.sh --json"
+      - id: dispatch      # detach-start + bounded poll — a direct dispatch WILL exceed 300s (R1).
+        type: shell       # --no-op-if-closed makes the guaranteed first do-while pass safe on empty
+        run: "CCLOOP_FEATURE='{{ steps.arm.output.data.feature }}' bash .specify/extensions/ccloop/scripts/bash/dispatch.sh next --detach --no-op-if-closed"
+      - id: judge         # cross-family judge + sandboxed tests; also detach+poll (tests can exceed 300s)
+        type: shell
+        run: "CCLOOP_FEATURE='{{ steps.arm.output.data.feature }}' bash .specify/extensions/ccloop/scripts/bash/judge.sh next --detach"
+      - id: gate          # freeze hash-verify + test runner — fail-closed (non-zero HALTS the run). base = HEAD.
+        type: shell
+        run: "CCLOOP_FEATURE='{{ steps.arm.output.data.feature }}' bash .specify/extensions/ccloop/scripts/bash/harness/gate.sh HEAD"
+      - id: record        # progress-lint (monotonic) + status update keyed by task ID
+        type: shell
+        run: "CCLOOP_FEATURE='{{ steps.arm.output.data.feature }}' bash .specify/extensions/ccloop/scripts/bash/progress-lint.sh record-next"
+  - id: assert_closed     # FAIL-CLOSED: cap-exhaustion / empty progress must NOT reach the gate looking successful
+    type: shell
+    run: "CCLOOP_FEATURE='{{ steps.arm.output.data.feature }}' bash .specify/extensions/ccloop/scripts/bash/progress-status.sh --assert-closed"
+  - id: human_done_gate   # the ONE human gate — shows debt.md; PAUSES if non-TTY → resume to sign off
+    type: gate
+    message: "All tasks judge-pass. Review comprehension debt below, then approve to close."
+    show_file: "{{ steps.arm.output.data.feature }}/ccloop/debt.md"   # feature already includes the 'specs/' prefix
+    options: [approve, reject]
+    on_reject: abort
+  - id: signoff
+    type: shell
+    run: "CCLOOP_FEATURE='{{ steps.arm.output.data.feature }}' bash .specify/extensions/ccloop/scripts/bash/done-gate.sh signoff"
+  - id: reflect
+    type: shell
+    run: "CCLOOP_FEATURE='{{ steps.arm.output.data.feature }}' bash .specify/extensions/ccloop/scripts/bash/reflect.sh run"

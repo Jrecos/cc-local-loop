@@ -1,0 +1,13 @@
+implementer:
+  agent_cli: "opencode"          # opencode | claude | codex | copilot | <path>
+  model: "qwen3.6-35b"
+  family: "qwen"                 # must differ from judge.family (cross-family invariant)
+judge:
+  agent_cli: "opencode"
+  model: "gemma-4-26b-a4b"
+  family: "google"
+  votes: 1
+  three_valued: true             # pass | fail | uncertain
+loop:
+  max_iterations: 20
+  time_budget_min: 120
