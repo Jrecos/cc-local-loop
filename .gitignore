@@ -8,6 +8,17 @@ candidates.jsonl
 events.jsonl
 # --- eval workspace (regenerated; never hand-edited) ---
 evals/workspace/
+# --- ccloop data plane (feature-scoped; written into specs/<feature>/ccloop/ at runtime) ---
+specs/*/ccloop/*
+!specs/*/ccloop/promoted.jsonl
+# --- agent-local (regenerable via `specify`; may hold local state — spec-kit security guidance) ---
+.claude/
+# --- spec-kit volatile ---
+.specify/**/.cache/
+.specify/workflows/runs/
+# --- session backups from the 0.11.5 → 0.12.4 re-init (safe to delete) ---
+.specify.bak-*
+.claude.bak-*
 # --- OS / editor ---
 .DS_Store
 *.swp

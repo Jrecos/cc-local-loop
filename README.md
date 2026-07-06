@@ -4,11 +4,17 @@
 
 > **Invariant:** `Opus 4.8 → local models → Opus 4.8`. The loop converges on a deterministic **Definition of Done** enforced in code, never by a model's opinion.
 
-This plugin is the packaged form of the design in `homelab/docs/ai-dev-orchestration-workflow.md` (v11) — **the combination of interconnected skills** that no single existing tool provided, bundled as one Claude Code plugin so it is versioned, namespaced, and improves over time via PRs.
+> **As of v0.5.0 this is a GitHub Spec Kit extension (`ccloop`), not a standalone Claude Code plugin.**
+> Install: `specify extension add ccloop --from <repo-url>`, then `/speckit.ccloop.run` in a feature that has `tasks.md`.
+> The implement loop is a spec-kit **workflow**; the data plane lives in `specs/<feature>/ccloop/`; `tasks.md` is the frozen
+> work queue (G9). See `specs/001-ccloop-extension/quickstart.md` and `docs/superpowers/specs/2026-07-06-ccloop-speckit-extension-design.md`.
+> Run `/speckit.ccloop.doctor` (or `bash .specify/extensions/ccloop/scripts/bash/doctor.sh`) for the live ENFORCED/PARTIAL/TODO matrix.
+
+This is the packaged form of the design in `homelab/docs/ai-dev-orchestration-workflow.md` (v11) — **the combination of interconnected skills** that no single existing tool provided, now versioned and namespaced as a spec-kit extension that improves over time via PRs.
 
 ---
 
-## Status: v0.4.0 — hardened scaffold + observability
+## Status: v0.5.0 — spec-kit extension (was: v0.4.0 hardened plugin scaffold)
 
 The **structure, skills, hooks, and contracts are in place and the safety guarantees are enforced in code** — verified by a **71-probe** regression net (`tests/run-tests.sh`) after an expert review ([`docs/REVIEW-v0.1.md`](docs/REVIEW-v0.1.md)), a round of field-benchmark hardening (circuit breaker, `--network none` test sandbox, budgeted narrow context, two-level state, check-idempotency), and a v0.4 **observability-only telemetry layer** with a human-gated improvement cadence (`emit` · `metrics` · `eval-run` · `lessons-lint`, guardrails G1–G8 — see the CHANGELOG). The node-ai calls (`dispatch.sh` / `judge.sh`) and `gate.sh`'s test runner remain `die`-guarded until the node-ai **"Option-B" serving topology** is deployed (see *Preconditions*) — a loop that verifies its cage before entering it. Run `bash scripts/doctor.sh` for the live **ENFORCED / PARTIAL / TODO** matrix.
 

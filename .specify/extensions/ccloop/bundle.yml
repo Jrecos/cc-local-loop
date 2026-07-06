@@ -1,0 +1,18 @@
+schema_version: "1.0"
+bundle:
+  id: ccloop
+  name: "cc-local-loop"
+  version: "0.5.0"
+  role: process
+  description: "Opus-orchestrated, local-model-executed implement loop for spec-kit, with a cross-family judge and human-gated closure."
+  author: "Jhonatan Reco"
+  license: MIT
+requires:
+  speckit_version: ">=0.12.4"
+provides:
+  extensions:
+    - id: ccloop
+      version: "0.5.0"
+  workflows:
+    - id: ccloop
+      version: "0.5.0"

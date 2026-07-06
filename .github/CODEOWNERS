@@ -1,6 +1,7 @@
 # The frozen yardstick and the harness are human-owned — the self-improvement loop may never edit them.
-/evals/calibration/        @Jrecos
-/scripts/harness/          @Jrecos
-/scripts/promote-check.sh  @Jrecos
-/scripts/lib/common.sh     @Jrecos
-/references/rubric.md      @Jrecos
+# (Repackaged as a spec-kit extension: the canonical scripts live under .specify/extensions/ccloop/.)
+/.specify/extensions/ccloop/evals/calibration/          @Jrecos
+/.specify/extensions/ccloop/scripts/bash/harness/       @Jrecos
+/.specify/extensions/ccloop/scripts/bash/promote-check.sh  @Jrecos
+/.specify/extensions/ccloop/scripts/bash/lib/common.sh     @Jrecos
+/.specify/extensions/ccloop/references/rubric.md           @Jrecos

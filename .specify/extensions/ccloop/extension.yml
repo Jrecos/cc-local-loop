@@ -1,0 +1,54 @@
+schema_version: "1.0"
+
+extension:
+  id: ccloop
+  name: "cc-local-loop"
+  version: "0.5.0"
+  description: "Opus orchestrates; local models implement via a pluggable agent-CLI adapter; a cross-family judge gates. Judge-only validation, deterministic bash harness, human-gated closure."
+  author: "Jhonatan Reco"
+  repository: "https://github.com/Jrecos/cc-local-loop"
+  license: MIT
+
+requires:
+  speckit_version: ">=0.12.4"
+  tools:
+    - name: git
+      required: true
+    - name: jq
+      required: true
+
+provides:
+  commands:
+    - name: speckit.ccloop.run
+      file: commands/run.md
+      description: "Launch the local-model implement loop over tasks.md (fire-and-forget workflow)."
+    - name: speckit.ccloop.status
+      file: commands/status.md
+      description: "Read-only budgeted snapshot of the loop + one recommended next action."
+    - name: speckit.ccloop.reflect
+      file: commands/reflect.md
+      description: "Distill the event ledger into quarantined candidate lessons (offline)."
+    - name: speckit.ccloop.promote
+      file: commands/promote.md
+      description: "Human-gated promotion of a candidate lesson into lessons.md via PR."
+    - name: speckit.ccloop.doctor
+      file: commands/doctor.md
+      description: "Show the ENFORCED / PARTIAL / TODO matrix for this install."
+  config:
+    - name: "ccloop-config.yml"
+      template: "templates/ccloop-config.template.yml"
+      description: "Implementer/judge adapters, models, families, loop bounds."
+      required: false
+
+hooks:
+  after_tasks:
+    command: speckit.ccloop.run
+    optional: true
+    prompt: "Run the ccloop local-model implement loop over these tasks?"
+    description: "Offer to implement tasks.md with local models, judge-gated."
+
+tags:
+  - orchestration
+  - local-llm
+  - autonomous-agents
+  - spec-driven-development
