@@ -8,9 +8,9 @@ This plugin is the packaged form of the design in `homelab/docs/ai-dev-orchestra
 
 ---
 
-## Status: v0.2.0 — hardened scaffold
+## Status: v0.3.0 — hardened scaffold
 
-The **structure, skills, hooks, and contracts are in place and the safety guarantees are enforced in code** — verified by a 36-probe regression net (`tests/run-tests.sh`) after an expert review ([`docs/REVIEW-v0.1.md`](docs/REVIEW-v0.1.md)). The node-ai calls (`dispatch.sh` / `judge.sh`) and `gate.sh`'s test runner remain `die`-guarded until the node-ai **"Option-B" serving topology** is deployed (see *Preconditions*) — a loop that verifies its cage before entering it. Run `bash scripts/doctor.sh` for the live **ENFORCED / PARTIAL / TODO** matrix.
+The **structure, skills, hooks, and contracts are in place and the safety guarantees are enforced in code** — verified by a **49-probe** regression net (`tests/run-tests.sh`) after an expert review ([`docs/REVIEW-v0.1.md`](docs/REVIEW-v0.1.md)) and a round of field-benchmark hardening (circuit breaker, `--network none` test sandbox, budgeted narrow context, two-level state, check-idempotency — see the CHANGELOG). The node-ai calls (`dispatch.sh` / `judge.sh`) and `gate.sh`'s test runner remain `die`-guarded until the node-ai **"Option-B" serving topology** is deployed (see *Preconditions*) — a loop that verifies its cage before entering it. Run `bash scripts/doctor.sh` for the live **ENFORCED / PARTIAL / TODO** matrix.
 
 ---
 
@@ -25,7 +25,7 @@ The **structure, skills, hooks, and contracts are in place and the safety guaran
 | **skill `promote-lessons`** | **Human-gated** promotion: opens a PR moving a candidate into `lessons.md` with non-regression evidence, gated by `promote-check.sh`. `disable-model-invocation` — only a human starts it. |
 | **skill `using-cc-local-loop`** | Orientation/router: explains the loop, routes the user to the right skill, shows status. Never dispatches or judges. |
 | **hook `Stop`** | Appends each run's outcome to the ledger — **only inside an active loop**. Fail-safe (errors never block the session). |
-| **scripts** | The deterministic muscle: `harness/{freeze,gate,guards}.sh`, `dispatch.sh`, `judge.sh`, `preflight.sh`, `ledger-append.sh`, `candidates-append.sh`, `promote-check.sh`, `doctor.sh`. **Safety-critical logic lives here as code.** |
+| **scripts** | The deterministic muscle: `harness/{freeze,gate,guards}.sh` (guards = MAX_ITER + TIME + no-progress + oscillation + heartbeat), `dispatch.sh`, `judge.sh`, `preflight.sh`, `build-context.sh` (narrow, budgeted), `sandbox-run.sh` (`--network none` test isolation), `state.sh` (STATUS.md + loop_state.json), `check-idempotency.sh`, `ledger-append.sh`, `candidates-append.sh`, `promote-check.sh`, `doctor.sh`. **Safety-critical logic lives here as code.** |
 | **agents** | `distiller` (read-only; returns a candidate) and `grader` (eval; fails loud without `skill-creator`). |
 | **references** | The judge `rubric.md`, the capped `lessons.md` (the ONE injected memory), and `architecture.md` (deep design + **E2E walkthrough**). |
 | **evals/calibration** | The **frozen yardstick** — seeded-bug `seeds/*.diff` the system measures against but never edits (CODEOWNERS + CI enforced). |
@@ -74,7 +74,8 @@ Local development against this repo: `claude --plugin-dir /path/to/cc-local-loop
 
 ```bash
 export NODE_AI_URL=http://<your-node-ai-host>:8080     # defaults to http://127.0.0.1:8080
-# optional: CCLL_MAX_ITER (6), CCLL_TIME_BUDGET_S (3600), CCLL_IMPL_ROSTER, CCLL_JUDGE_MODEL
+# loop:    CCLL_MAX_ITER (6) · CCLL_TIME_BUDGET_S (3600) · CCLL_CONTEXT_BUDGET (8000 tok) · CCLL_IMPL_ROSTER · CCLL_JUDGE_MODEL
+# sandbox: CCLL_SANDBOX_RUNTIME (auto|docker|podman) · CCLL_SANDBOX_IMAGE · CCLL_SANDBOX_TIMEOUT (120)
 ```
 
 `promote-lessons` reuses the **`skill-creator`** plugin as its eval harness — install it before promoting lessons.

@@ -1,7 +1,7 @@
 {
   "$schema": "https://json.schemastore.org/claude-code-plugin-manifest.json",
   "name": "cc-local-loop",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Opus 4.8 orchestrates an autonomous dev loop; local models (via OpenCode on node-ai) implement and a cross-family Gemma judge gates. Judge-only validation, a deterministic harness, and a human-gated self-improvement feedback loop.",
   "author": {
     "name": "Jhonatan Reco",

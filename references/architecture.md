@@ -29,6 +29,14 @@ Sequential `--parallel 1` (one model decodes at a time → full ~215 GB/s, no co
 **persistent**; implementers **swap** in the remaining ~44–48 GB. Queue sorted by model; Gemma-26B verdicts parked
 for the Qwen residency window (~0 extra swaps). See homelab doc §8.1.
 
+**Field-benchmark notes (Strix-Halo class; homelab ADR #15).** A DGX-Spark bench of our exact model stack surfaced:
+(a) if we ever re-enable parallelism, **`--kv-unified` is mandatory** — a bare `-np N` silently splits llama.cpp's KV
+cache (~30% per-stream penalty); (b) llama.cpp defaults to **4 slots** — concurrency >4 queues silently (our old
+"15 t/s" artifact); (c) **speculative decoding is a latency tool, not throughput** → the E2B draft earns its keep on
+the *persistent, low-concurrency judge*, not on batched implementers; (d) quant ladder Q8 → Q4 ≈ +30% single-stream.
+**NVFP4 / vLLM / AEON / MTP are CUDA-only — not applicable on our Vulkan/RADV.** Parallel serving stays a documented
+future option (the same box class does 546–648 tok/s aggregate across a swarm when tuned).
+
 ## Dispatch (why OpenCode, not raw claude -p)
 
 Implementers run **inside OpenCode's harness** (per-agent permission engine, tools, session) via a **fresh

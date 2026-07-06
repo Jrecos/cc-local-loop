@@ -2,6 +2,18 @@
 
 All notable changes to `cc-local-loop` are documented here. Format: [Keep a Changelog](https://keepachangelog.com); versioning: [SemVer](https://semver.org).
 
+## [0.3.0] — 2026-07-05
+### Added — field-benchmark hardening (from two write-ups: a Strix-Halo-class serving bench + a loop-engineering roadmap)
+Implemented and verified by the same review loop (implement → gate → Fable judge → fix → re-gate). Regression net grew **36 → 49 probes**.
+- **`guards.sh` circuit breaker:** per-task **no-progress** (identical failing signature ×2), **oscillation** (a signature repeating within the last 4), and a **liveness heartbeat** — on top of MAX_ITER + TIME. Portable (bash 3.2 / macOS).
+- **`sandbox-run.sh`:** runs model-authored tests with **`--network none --read-only`** (prompt-injection defense), with an `env -i` + `timeout` fallback. Closes review finding **F5**; the judge lane runs its adversarial tests here.
+- **`build-context.sh`:** a **narrow, token-budgeted** iteration context (state + the one open failure + only its stack-trace / last-diff **tracked** files). Rejects absolute / `..` / out-of-repo paths — **no exfiltration** (a bug the Fable judge caught: a `../secrets.py` in model-influenced failure text was embeddable; now blocked + regression-probed).
+- **`state.sh`:** two-level state — human `STATUS.md` + machine `loop_state.json`.
+- **`check-idempotency.sh`:** runs the gate N× on one state and aborts if non-deterministic (a flaky check breaks the stop condition).
+- **`doctor.sh`** matrix: stop-rules / narrow-context / two-level-state / check-idempotency now **ENFORCED**; adversarial-test sandbox **PARTIAL**.
+### Docs
+- The homelab spec records the infra findings (decisions ADR #15): **`--kv-unified`** (avoid the ~30% split-KV penalty), the default-slots-as-a-queue trap, spec-decode = a *latency* tool (validates the E2B draft for the persistent judge), the quant ladder. **NVFP4 / vLLM / AEON / MTP are CUDA-only — not applicable on our Vulkan/RADV.**
+
 ## [0.2.0] — 2026-07-05
 ### Hardened (post-review — see `docs/REVIEW-v0.1.md`)
 An expert Fable review (2 priming agents → 4 auditors → converging council → verification judge) audited v0.1.0 and

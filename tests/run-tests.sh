@@ -63,6 +63,58 @@ for s in "$ROOT"/scripts/*.sh "$ROOT"/scripts/harness/*.sh; do
   if bash -n "$s" 2>/dev/null; then ok "syntax $(basename "$s")"; else no "syntax $(basename "$s")"; fi
 done
 
+echo "10. guards.sh circuit breaker (no-progress + heartbeat)"
+Gd="$(mktemp -d)"
+CLAUDE_PROJECT_DIR="$Gd" bash "$ROOT/scripts/harness/guards.sh" NP '["x"]' >/dev/null 2>&1
+d="$(CLAUDE_PROJECT_DIR="$Gd" bash "$ROOT/scripts/harness/guards.sh" NP '["x"]' 2>/dev/null | jq -r .decision)"
+[ "$d" = ESCALATE ] && ok "no-progress escalates" || no "no-progress escalates"
+[ -f "$Gd/.cc-local-loop/tasks/NP/heartbeat" ] && ok "heartbeat written" || no "heartbeat written"
+rm -rf "$Gd"
+
+echo "11. guards.sh oscillation (A,B,A escalates)"
+Go="$(mktemp -d)"
+CLAUDE_PROJECT_DIR="$Go" bash "$ROOT/scripts/harness/guards.sh" OS '["A"]' >/dev/null 2>&1
+CLAUDE_PROJECT_DIR="$Go" bash "$ROOT/scripts/harness/guards.sh" OS '["B"]' >/dev/null 2>&1
+d="$(CLAUDE_PROJECT_DIR="$Go" bash "$ROOT/scripts/harness/guards.sh" OS '["A"]' 2>/dev/null | jq -r .decision)"
+[ "$d" = ESCALATE ] && ok "oscillation escalates" || no "oscillation escalates"
+rm -rf "$Go"
+
+echo "12. state.sh two-level (loop_state.json + STATUS.md)"
+St="$(mktemp -d)"
+CLAUDE_PROJECT_DIR="$St" bash "$ROOT/scripts/state.sh" impl 2 abc123 "t.spec:1" >/dev/null 2>&1
+{ jq -e '.phase=="impl" and .iteration==2' "$St/.cc-local-loop/loop_state.json" >/dev/null 2>&1 && [ -f "$St/.cc-local-loop/STATUS.md" ]; } && ok "state two-level" || no "state two-level"
+rm -rf "$St"
+
+echo "13. build-context.sh narrow + budgeted"
+Bc="$(mktemp -d)"
+( cd "$Bc" && git init -q && git config user.email a@b.c && git config user.name t && echo 'def f(): pass' > mod.py && git add -A && git commit -qm b && echo x >> mod.py && git commit -aqm c ) >/dev/null 2>&1
+CLAUDE_PROJECT_DIR="$Bc" bash "$ROOT/scripts/build-context.sh" BC "FAIL mod.py:1" >/dev/null 2>&1
+{ [ -f "$Bc/.cc-local-loop/context-BC.md" ] && grep -q '### mod.py' "$Bc/.cc-local-loop/context-BC.md"; } && ok "context includes stack-trace file" || no "context includes stack-trace file"
+rm -rf "$Bc"
+
+echo "14. check-idempotency.sh (deterministic gate)"
+Ci="$(mktemp -d)"
+( cd "$Ci" && git init -q && git config user.email a@b.c && git config user.name t && echo a>f && git add -A && git commit -qm b && echo b>>f && git commit -aqm c ) >/dev/null 2>&1
+CLAUDE_PROJECT_DIR="$Ci" bash "$ROOT/scripts/check-idempotency.sh" HEAD~1 3 >/dev/null 2>&1 && ok "gate idempotent" || no "gate idempotent"
+rm -rf "$Ci"
+
+echo "15. sandbox-run.sh runs the command (fallback ok)"
+[ "$(bash "$ROOT/scripts/sandbox-run.sh" echo hi 2>/dev/null)" = hi ] && ok "sandbox runs cmd" || no "sandbox runs cmd"
+
+echo "16. build-context.sh survives a no-file-token failure (BLOCKER A)"
+Bx="$(mktemp -d)"
+( cd "$Bx" && git init -q && git config user.email a@b.c && git config user.name t && echo a>a.py && git add -A && git commit -qm b && echo b>>a.py && git commit -aqm c ) >/dev/null 2>&1
+CLAUDE_PROJECT_DIR="$Bx" bash "$ROOT/scripts/build-context.sh" NB "unimplemented:lint-type-build-tests-coverage" >/dev/null 2>&1 && ok "no-file-token failure survives" || no "no-file-token failure survives"
+rm -rf "$Bx"
+
+echo "17. build-context.sh rejects out-of-repo paths (BLOCKER B — no exfiltration)"
+Bp="$(mktemp -d)"; sec="/tmp/ccll_secret_$$.py"
+( cd "$Bp" && git init -q && git config user.email a@b.c && git config user.name t && echo a>a.py && git add -A && git commit -qm b && echo b>>a.py && git commit -aqm c ) >/dev/null 2>&1
+echo 'API_KEY="sk-LEAK"' > "$sec"
+CLAUDE_PROJECT_DIR="$Bp" bash "$ROOT/scripts/build-context.sh" NP "Error at ../x.py and ${sec}:1" >/dev/null 2>&1
+grep -q 'sk-LEAK' "$Bp/.cc-local-loop/context-NP.md" 2>/dev/null && no "out-of-repo path rejected" || ok "out-of-repo path rejected"
+rm -rf "$Bp" "$sec"
+
 echo ""
 printf 'RESULT: %d passed, %d failed\n' "$P" "$F"
 [ "$F" -eq 0 ]

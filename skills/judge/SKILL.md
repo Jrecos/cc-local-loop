@@ -28,10 +28,12 @@ the impl model precisely so it can assert this and abort. Full protocol: `refere
 
 - **Context-pack** = diff + full post-image of changed files + spec/AC + harness test output; asserts it fits the
   judge 32K KV, else escalates to Opus (never truncates).
-- **Two passes:** free-form (fenced adversarial tests) → grammar-JSON verdict. The harness runs the tests in a
-  **sandboxed ephemeral worktree**; non-compiling ⇒ `JUDGE_TEST_INVALID` (discard, never a gate-fail).
+- **Two passes:** free-form (fenced adversarial tests) → grammar-JSON verdict. The harness runs the emitted tests via
+  `"${CLAUDE_PLUGIN_ROOT}/scripts/sandbox-run.sh"` (a `--network none --read-only` container, or an `env -i` + timeout
+  fallback) — model-authored code never touches your network or files outside the workdir. Non-compiling ⇒
+  `JUDGE_TEST_INVALID` (discard, never a gate-fail).
 - **Fail-closed:** infra error / unparseable / device-lost ⇒ **REJECT + escalate** (exit 2), never approve on error.
   Empty diff ⇒ `NO_CHANGE_NEEDED` → Opus.
 
-> **Scaffold (v0.2):** `judge.sh` refuses to run (`die`) until node-ai Option-B (Gemma-31B + E2B draft) is deployed
+> **Scaffold (v0.3):** `judge.sh` refuses to run (`die`) until node-ai Option-B (Gemma-31B + E2B draft) is deployed
 > and the two-pass call is wired (§15.5). It already asserts cross-family and fails closed on the health check.

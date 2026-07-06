@@ -30,5 +30,5 @@ through the script so the roster check, cross-family assert, and scope injection
 - Fallback lane only (weekly canary, mechanical tasks): `claude -p` + `ANTHROPIC_BASE_URL`→node-ai with
   `CLAUDE_CODE_ATTRIBUTION_HEADER=0`. See `references/architecture.md`.
 
-> **Scaffold (v0.2):** `dispatch.sh` refuses to run (`die`) until node-ai Option-B + an OpenCode `node-ai` provider
+> **Scaffold (v0.3):** `dispatch.sh` refuses to run (`die`) until node-ai Option-B + an OpenCode `node-ai` provider
 > are configured (§15.5). The roster/cross-family/scope checks already run before that guard.
